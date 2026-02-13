@@ -1,4 +1,4 @@
-use crate::action::FocusTarget;
+use crate::action::{ActiveLayout, FocusTarget};
 
 /// Manages which panel is currently focused.
 pub struct FocusManager {
@@ -39,6 +39,23 @@ impl FocusManager {
             .position(|p| *p == self.current)
             .unwrap_or(0);
         self.current = self.panels[(idx + 1) % self.panels.len()];
+    }
+
+    /// Switch panel lists based on the active layout.
+    pub fn set_layout(&mut self, layout: ActiveLayout) {
+        self.panels = match layout {
+            ActiveLayout::Browser => vec![
+                FocusTarget::TreePanel,
+                FocusTarget::DetailPanel,
+                FocusTarget::CommandPanel,
+            ],
+            ActiveLayout::Connections => {
+                vec![FocusTarget::ConnectionsTree, FocusTarget::ConnectionForm]
+            }
+        };
+        if !self.panels.contains(&self.current) {
+            self.current = self.panels[0];
+        }
     }
 
     /// Move focus to the previous panel.

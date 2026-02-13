@@ -65,6 +65,7 @@ async fn main() -> Result<()> {
             page_size: 500,
             timeout_secs: 30,
             relax_rules: false,
+            folder: None,
         };
         config.connections.insert(0, profile);
     }

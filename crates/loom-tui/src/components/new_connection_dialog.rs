@@ -173,6 +173,7 @@ impl NewConnectionDialog {
             page_size: 500,
             timeout_secs: 30,
             relax_rules: false,
+            folder: None,
         };
 
         let password = self.password.clone();

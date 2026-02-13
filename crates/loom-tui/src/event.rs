@@ -15,9 +15,7 @@ pub enum AppEvent {
 pub fn poll_event(tick_rate: Duration) -> Option<AppEvent> {
     if event::poll(tick_rate).ok()? {
         match event::read().ok()? {
-            CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => {
-                Some(AppEvent::Key(key))
-            }
+            CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => Some(AppEvent::Key(key)),
             CrosstermEvent::Mouse(mouse) => Some(AppEvent::Mouse(mouse)),
             CrosstermEvent::Resize(w, h) => Some(AppEvent::Resize(w, h)),
             _ => None,

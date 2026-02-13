@@ -9,6 +9,13 @@ use loom_core::tree::TreeNode;
 /// Unique identifier for a connection tab.
 pub type ConnectionId = usize;
 
+/// Which top-level layout is active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveLayout {
+    Browser,
+    Connections,
+}
+
 /// All actions that can flow through the application.
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -127,6 +134,18 @@ pub enum Action {
     StatusMessage(String),
     ErrorMessage(String),
 
+    // Layout switching
+    ToggleLayout,
+    SwitchLayout(ActiveLayout),
+
+    // Connections Manager
+    ConnMgrSelect(usize),                       // select saved profile by index
+    ConnMgrNew,                                 // start creating new profile
+    ConnMgrSave(usize, Box<ConnectionProfile>), // save edited profile at index
+    ConnMgrCreate(Box<ConnectionProfile>),      // create new profile
+    ConnMgrDelete(usize),                       // delete saved profile by index
+    ConnMgrConnect(usize),                      // connect from connections manager
+
     // No-op
     None,
 }
@@ -137,4 +156,6 @@ pub enum FocusTarget {
     TreePanel,
     DetailPanel,
     CommandPanel,
+    ConnectionsTree,
+    ConnectionForm,
 }
