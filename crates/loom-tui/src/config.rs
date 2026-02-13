@@ -26,6 +26,8 @@ pub struct ConnectionProfile {
     pub timeout_secs: u64,
     #[serde(default)]
     pub relax_rules: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
 }
 
 fn default_port() -> u16 {
@@ -54,11 +56,55 @@ impl ConnectionProfile {
     }
 }
 
+/// Configurable keybindings for global shortcuts.
+/// Each field holds a key string like "Alt+t", "Ctrl+c", "q", "F2", etc.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct KeybindingConfig {
+    pub quit: String,
+    pub force_quit: String,
+    pub focus_next: String,
+    pub focus_prev: String,
+    pub show_connect_dialog: String,
+    pub next_tab: String,
+    pub prev_tab: String,
+    pub search: String,
+    pub show_export_dialog: String,
+    pub show_bulk_update: String,
+    pub show_schema_viewer: String,
+    pub toggle_log_panel: String,
+    pub save_connection: String,
+    pub toggle_layout: String,
+}
+
+impl Default for KeybindingConfig {
+    fn default() -> Self {
+        Self {
+            quit: "q".to_string(),
+            force_quit: "Ctrl+c".to_string(),
+            focus_next: "Tab".to_string(),
+            focus_prev: "Shift+Tab".to_string(),
+            show_connect_dialog: "Ctrl+t".to_string(),
+            next_tab: "Ctrl+n".to_string(),
+            prev_tab: "Ctrl+p".to_string(),
+            search: "/".to_string(),
+            show_export_dialog: "Ctrl+e".to_string(),
+            show_bulk_update: "Ctrl+b".to_string(),
+            show_schema_viewer: "Ctrl+s".to_string(),
+            toggle_log_panel: "Ctrl+l".to_string(),
+            save_connection: "Ctrl+w".to_string(),
+            toggle_layout: "Ctrl+g".to_string(),
+        }
+    }
+}
+
 /// Top-level application configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub general: GeneralConfig,
+    #[serde(default)]
+    pub keybindings: KeybindingConfig,
     #[serde(default)]
     pub connections: Vec<ConnectionProfile>,
 }
@@ -114,6 +160,38 @@ impl AppConfig {
     /// Parse config from a TOML string.
     pub fn from_toml(content: &str) -> Result<Self, toml::de::Error> {
         toml::from_str(content)
+    }
+
+    /// Save the entire config to disk, overwriting the existing file.
+    pub fn save(&self) -> Result<(), String> {
+        let config_dir = dirs::config_dir()
+            .map(|d| d.join("loom"))
+            .ok_or_else(|| "Cannot determine config directory".to_string())?;
+
+        std::fs::create_dir_all(&config_dir)
+            .map_err(|e| format!("Failed to create config dir: {}", e))?;
+
+        let content = toml::to_string_pretty(self)
+            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+
+        std::fs::write(config_dir.join("config.toml"), content)
+            .map_err(|e| format!("Failed to write config: {}", e))?;
+
+        Ok(())
+    }
+
+    /// Update a connection profile at the given index.
+    pub fn update_connection(&mut self, index: usize, profile: ConnectionProfile) {
+        if index < self.connections.len() {
+            self.connections[index] = profile;
+        }
+    }
+
+    /// Delete a connection profile at the given index.
+    pub fn delete_connection(&mut self, index: usize) {
+        if index < self.connections.len() {
+            self.connections.remove(index);
+        }
     }
 
     /// Append a connection profile to the config file on disk.
@@ -223,6 +301,7 @@ timeout_secs = 60
             page_size: 500,
             timeout_secs: 30,
             relax_rules: false,
+            folder: None,
         };
 
         let settings = profile.to_connection_settings();
@@ -230,6 +309,32 @@ timeout_secs = 60
         assert_eq!(settings.port, 389);
         assert_eq!(settings.bind_dn, Some("cn=admin".to_string()));
         assert_eq!(settings.base_dn, Some("dc=test".to_string()));
+    }
+
+    #[test]
+    fn test_keybindings_config_defaults() {
+        let config = AppConfig::default();
+        assert_eq!(config.keybindings.quit, "q");
+        assert_eq!(config.keybindings.force_quit, "Ctrl+c");
+        assert_eq!(config.keybindings.show_connect_dialog, "Ctrl+t");
+        assert_eq!(config.keybindings.toggle_layout, "Ctrl+g");
+    }
+
+    #[test]
+    fn test_parse_keybindings_section() {
+        let toml = r#"
+[keybindings]
+quit = "Alt+q"
+show_connect_dialog = "Alt+t"
+toggle_layout = "F1"
+"#;
+        let config = AppConfig::from_toml(toml).unwrap();
+        assert_eq!(config.keybindings.quit, "Alt+q");
+        assert_eq!(config.keybindings.show_connect_dialog, "Alt+t");
+        assert_eq!(config.keybindings.toggle_layout, "F1");
+        // Non-specified fields keep defaults
+        assert_eq!(config.keybindings.force_quit, "Ctrl+c");
+        assert_eq!(config.keybindings.search, "/");
     }
 
     #[test]

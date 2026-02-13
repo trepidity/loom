@@ -27,16 +27,63 @@ pub struct Theme {
 }
 
 impl Theme {
-    /// The default dark theme (Matrix green-on-black aesthetic).
+    /// Default dark theme based on the Catppuccin Mocha palette.
+    /// Soft pastel accents on a dark blue-gray base for readability and eye comfort.
     pub fn dark() -> Self {
+        // Catppuccin Mocha palette
+        let base = Color::Rgb(30, 30, 46);       // #1e1e2e  background
+        let surface0 = Color::Rgb(49, 50, 68);   // #313244  elevated surfaces
+        let surface1 = Color::Rgb(69, 71, 90);   // #45475a  selection/active bg
+        let overlay0 = Color::Rgb(108, 112, 134); // #6c7086 muted/dim
+        let subtext0 = Color::Rgb(166, 173, 200); // #a6adc8 secondary text
+        let text = Color::Rgb(205, 214, 244);     // #cdd6f4  primary text
+        let blue = Color::Rgb(137, 180, 250);     // #89b4fa  accent/focus
+        let lavender = Color::Rgb(180, 190, 254); // #b4befe secondary accent
+        let green = Color::Rgb(166, 227, 161);    // #a6e3a1  success
+        let red = Color::Rgb(243, 139, 168);      // #f38ba8  error
+        let peach = Color::Rgb(250, 179, 135);    // #fab387  warning/orange
+        let yellow = Color::Rgb(249, 226, 175);   // #f9e2af  warning
+        let mauve = Color::Rgb(203, 166, 247);    // #cba6f7  purple accent
+
+        Self {
+            border: Style::default().fg(surface1),
+            border_focused: Style::default()
+                .fg(blue)
+                .add_modifier(Modifier::BOLD),
+            selected: Style::default().fg(base).bg(blue),
+            header: Style::default()
+                .fg(lavender)
+                .add_modifier(Modifier::BOLD),
+            normal: Style::default().fg(text),
+            dimmed: Style::default().fg(overlay0),
+            error: Style::default().fg(red).add_modifier(Modifier::BOLD),
+            warning: Style::default().fg(yellow),
+            success: Style::default().fg(green),
+            status_bar: Style::default().fg(subtext0).bg(surface0),
+            tab_active: Style::default()
+                .fg(blue)
+                .add_modifier(Modifier::BOLD),
+            tab_inactive: Style::default().fg(overlay0),
+            tree_node: Style::default().fg(text),
+            tree_node_expanded: Style::default().fg(green),
+            tree_node_selected: Style::default().fg(base).bg(blue),
+            popup_border: Style::default().fg(mauve),
+            popup_title: Style::default()
+                .fg(mauve)
+                .add_modifier(Modifier::BOLD),
+            command_prompt: Style::default().fg(peach),
+            attr_operational: Style::default().fg(overlay0),
+        }
+    }
+
+    /// Matrix green-on-black retro theme.
+    pub fn matrix() -> Self {
         Self {
             border: Style::default().fg(Color::Rgb(0, 100, 0)),
             border_focused: Style::default()
                 .fg(Color::Rgb(0, 255, 0))
                 .add_modifier(Modifier::BOLD),
-            selected: Style::default()
-                .fg(Color::Black)
-                .bg(Color::Rgb(0, 200, 0)),
+            selected: Style::default().fg(Color::Black).bg(Color::Rgb(0, 200, 0)),
             header: Style::default()
                 .fg(Color::Rgb(0, 255, 0))
                 .add_modifier(Modifier::BOLD),
@@ -54,9 +101,7 @@ impl Theme {
             tab_inactive: Style::default().fg(Color::Rgb(0, 100, 0)),
             tree_node: Style::default().fg(Color::Rgb(0, 190, 0)),
             tree_node_expanded: Style::default().fg(Color::Rgb(0, 255, 0)),
-            tree_node_selected: Style::default()
-                .fg(Color::Black)
-                .bg(Color::Rgb(0, 200, 0)),
+            tree_node_selected: Style::default().fg(Color::Black).bg(Color::Rgb(0, 200, 0)),
             popup_border: Style::default().fg(Color::Rgb(0, 255, 0)),
             popup_title: Style::default()
                 .fg(Color::Rgb(0, 255, 0))
@@ -178,6 +223,7 @@ impl Theme {
             "light" => Self::light(),
             "solarized" => Self::solarized(),
             "nord" => Self::nord(),
+            "matrix" => Self::matrix(),
             _ => {
                 // Try loading from config themes directory
                 if let Some(config_dir) = dirs::config_dir() {
@@ -388,5 +434,6 @@ mod tests {
         let _light = Theme::load("light");
         let _solarized = Theme::load("solarized");
         let _nord = Theme::load("nord");
+        let _matrix = Theme::load("matrix");
     }
 }

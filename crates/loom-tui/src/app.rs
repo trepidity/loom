@@ -12,17 +12,20 @@ use loom_core::credentials::{CredentialMethod, CredentialProvider};
 use loom_core::schema::{AttributeSyntax, SchemaCache};
 use loom_core::tree::{DirectoryTree, TreeNode};
 
-use crate::action::{Action, ConnectionId, FocusTarget};
+use crate::action::{Action, ActiveLayout, ConnectionId, FocusTarget};
 use crate::component::Component;
 use crate::components::attribute_editor::{AttributeEditor, EditOp};
 use crate::components::bulk_update_dialog::BulkUpdateDialog;
 use crate::components::command_panel::CommandPanel;
 use crate::components::confirm_dialog::ConfirmDialog;
 use crate::components::connect_dialog::ConnectDialog;
+use crate::components::connection_form::ConnectionForm;
+use crate::components::connections_tree::{ActiveConnInfo, ConnectionsTree};
 use crate::components::create_entry_dialog::CreateEntryDialog;
 use crate::components::credential_prompt::CredentialPromptDialog;
 use crate::components::detail_panel::DetailPanel;
 use crate::components::export_dialog::ExportDialog;
+use crate::components::layout_bar::LayoutBar;
 use crate::components::log_panel::LogPanel;
 use crate::components::new_connection_dialog::NewConnectionDialog;
 use crate::components::schema_viewer::SchemaViewer;
@@ -33,7 +36,7 @@ use crate::components::tree_panel::TreePanel;
 use crate::config::{AppConfig, ConnectionProfile};
 use crate::event::{self, AppEvent};
 use crate::focus::FocusManager;
-use crate::keymap;
+use crate::keymap::Keymap;
 use crate::theme::Theme;
 use crate::tui;
 
@@ -56,17 +59,28 @@ pub struct App {
     should_quit: bool,
     next_conn_id: ConnectionId,
 
+    // Layout state
+    active_layout: ActiveLayout,
+
     // Connection tabs
     tabs: Vec<ConnectionTab>,
     active_tab_id: Option<ConnectionId>,
 
+    // Keymap
+    keymap: Keymap,
+
     // UI components
+    layout_bar: LayoutBar,
     tab_bar: TabBar,
     tree_panel: TreePanel,
     detail_panel: DetailPanel,
     command_panel: CommandPanel,
     status_bar: StatusBar,
     focus: FocusManager,
+
+    // Connections manager components
+    connections_tree: ConnectionsTree,
+    connection_form: ConnectionForm,
 
     // Popup/dialogs
     confirm_dialog: ConfirmDialog,
@@ -89,6 +103,9 @@ pub struct App {
     detail_area: Option<Rect>,
     command_area: Option<Rect>,
     tab_area: Option<Rect>,
+    layout_bar_area: Option<Rect>,
+    conn_tree_area: Option<Rect>,
+    conn_form_area: Option<Rect>,
 
     // Async communication
     action_tx: tokio::sync::mpsc::UnboundedSender<Action>,
@@ -98,6 +115,8 @@ pub struct App {
 impl App {
     pub fn new(config: AppConfig) -> Self {
         let theme = Theme::load(&config.general.theme);
+        let keymap = Keymap::from_config(&config.keybindings);
+        let status_bar = StatusBar::new(theme.clone(), &keymap);
         let (action_tx, action_rx) = tokio::sync::mpsc::unbounded_channel();
 
         Self {
@@ -105,14 +124,19 @@ impl App {
             theme: theme.clone(),
             should_quit: false,
             next_conn_id: 0,
+            active_layout: ActiveLayout::Browser,
             tabs: Vec::new(),
             active_tab_id: None,
+            keymap,
+            layout_bar: LayoutBar::new(theme.clone()),
             tab_bar: TabBar::new(theme.clone()),
             tree_panel: TreePanel::new(theme.clone()),
             detail_panel: DetailPanel::new(theme.clone()),
             command_panel: CommandPanel::new(theme.clone()),
-            status_bar: StatusBar::new(theme.clone()),
+            status_bar,
             focus: FocusManager::new(),
+            connections_tree: ConnectionsTree::new(theme.clone()),
+            connection_form: ConnectionForm::new(theme.clone()),
             confirm_dialog: ConfirmDialog::new(theme.clone()),
             connect_dialog: ConnectDialog::new(theme.clone()),
             new_connection_dialog: NewConnectionDialog::new(theme.clone()),
@@ -129,6 +153,9 @@ impl App {
             detail_area: None,
             command_area: None,
             tab_area: None,
+            layout_bar_area: None,
+            conn_tree_area: None,
+            conn_form_area: None,
             action_tx,
             action_rx,
         }
@@ -169,9 +196,10 @@ impl App {
                 }
             }
         } else {
-            self.command_panel.push_message(
-                "No connections configured. Press Ctrl+T or add profiles to ~/.config/loom/config.toml".to_string(),
-            );
+            self.command_panel.push_message(format!(
+                "No connections configured. Press {} or add profiles to ~/.config/loom/config.toml",
+                self.keymap.hint("show_connect_dialog"),
+            ));
         }
     }
 
@@ -700,19 +728,38 @@ impl App {
                             self.schema_viewer.handle_key_event(key)
                         } else if self.log_panel.visible {
                             self.log_panel.handle_key_event(key)
-                        } else if self.command_panel.input_active {
+                        } else if self.command_panel.input_active
+                            && self.active_layout == ActiveLayout::Browser
+                        {
                             self.command_panel.handle_input_key(key)
+                        } else if self.active_layout == ActiveLayout::Connections {
+                            // Connections layout: route to connections panels first
+                            let panel_action = match self.focus.current() {
+                                FocusTarget::ConnectionsTree => {
+                                    self.connections_tree.handle_key_event(key)
+                                }
+                                FocusTarget::ConnectionForm => {
+                                    self.connection_form.handle_key_event(key)
+                                }
+                                _ => Action::None,
+                            };
+                            if matches!(panel_action, Action::None) {
+                                self.keymap.resolve(key, self.focus.current())
+                            } else {
+                                panel_action
+                            }
                         } else {
-                            // Try panel-specific handler first, fall back to global keymap
+                            // Browser layout: try panel-specific handler first, fall back to global keymap
                             let panel_action = match self.focus.current() {
                                 FocusTarget::TreePanel => self.tree_panel.handle_key_event(key),
                                 FocusTarget::DetailPanel => self.detail_panel.handle_key_event(key),
                                 FocusTarget::CommandPanel => {
                                     self.command_panel.handle_input_key(key)
                                 }
+                                _ => Action::None,
                             };
                             if matches!(panel_action, Action::None) {
-                                keymap::resolve_key(key, self.focus.current())
+                                self.keymap.resolve(key, self.focus.current())
                             } else {
                                 panel_action
                             }
@@ -758,7 +805,34 @@ impl App {
             MouseEventKind::Down(crossterm::event::MouseButton::Left) => {
                 let pos = Rect::new(mouse.column, mouse.row, 1, 1);
 
-                // Check which panel was clicked
+                // Check layout bar clicks
+                if let Some(bar) = self.layout_bar_area {
+                    if bar.intersects(pos) {
+                        let mid = bar.x + bar.width / 2;
+                        return if mouse.column < mid {
+                            Action::SwitchLayout(ActiveLayout::Browser)
+                        } else {
+                            Action::SwitchLayout(ActiveLayout::Connections)
+                        };
+                    }
+                }
+
+                // Check connections layout panels
+                if self.active_layout == ActiveLayout::Connections {
+                    if let Some(ct) = self.conn_tree_area {
+                        if ct.intersects(pos) {
+                            return Action::FocusPanel(FocusTarget::ConnectionsTree);
+                        }
+                    }
+                    if let Some(cf) = self.conn_form_area {
+                        if cf.intersects(pos) {
+                            return Action::FocusPanel(FocusTarget::ConnectionForm);
+                        }
+                    }
+                    return Action::None;
+                }
+
+                // Browser layout panels
                 if let Some(tree) = self.tree_area {
                     if tree.intersects(pos) {
                         return Action::FocusPanel(FocusTarget::TreePanel);
@@ -810,6 +884,12 @@ impl App {
             }
             Action::SwitchTab(id) => {
                 self.switch_to_tab(id);
+                // If switching from Connections layout, go to Browser
+                if self.active_layout == ActiveLayout::Connections {
+                    self.active_layout = ActiveLayout::Browser;
+                    self.layout_bar.active = ActiveLayout::Browser;
+                    self.focus.set_layout(ActiveLayout::Browser);
+                }
             }
             Action::ShowConnectDialog => {
                 self.connect_dialog.show(self.config.connections.clone());
@@ -840,9 +920,10 @@ impl App {
                 match self.connect_with_password(&profile, &password).await {
                     Ok(()) => {
                         self.last_adhoc_profile = Some(profile_clone);
-                        self.command_panel.push_message(
-                            "Tip: Press Ctrl+W to save this connection to config".to_string(),
-                        );
+                        self.command_panel.push_message(format!(
+                            "Tip: Press {} to save this connection to config",
+                            self.keymap.hint("save_connection"),
+                        ));
                     }
                     Err(e) if is_auth_error(&e) => {
                         self.command_panel
@@ -898,6 +979,93 @@ impl App {
                         .push_message("No ad-hoc connection to save".to_string());
                 }
             }
+            // Layout switching
+            Action::ToggleLayout => {
+                let new_layout = match self.active_layout {
+                    ActiveLayout::Browser => ActiveLayout::Connections,
+                    ActiveLayout::Connections => ActiveLayout::Browser,
+                };
+                self.active_layout = new_layout;
+                self.layout_bar.active = new_layout;
+                self.focus.set_layout(new_layout);
+            }
+            Action::SwitchLayout(layout) => {
+                self.active_layout = layout;
+                self.layout_bar.active = layout;
+                self.focus.set_layout(layout);
+            }
+
+            // Connections Manager
+            Action::ConnMgrSelect(idx) => {
+                if let Some(profile) = self.config.connections.get(idx) {
+                    self.connection_form.view_profile(idx, profile);
+                    self.focus.set(FocusTarget::ConnectionForm);
+                }
+            }
+            Action::ConnMgrNew => {
+                self.connection_form.new_profile();
+                self.focus.set(FocusTarget::ConnectionForm);
+            }
+            Action::ConnMgrSave(idx, profile) => {
+                self.config.update_connection(idx, *profile);
+                if let Err(e) = self.config.save() {
+                    self.command_panel
+                        .push_error(format!("Failed to save config: {}", e));
+                } else {
+                    self.command_panel.push_message("Profile saved".to_string());
+                }
+                if let Some(updated) = self.config.connections.get(idx) {
+                    self.connection_form.view_profile(idx, updated);
+                }
+            }
+            Action::ConnMgrCreate(profile) => {
+                self.config.connections.push(*profile);
+                let new_idx = self.config.connections.len() - 1;
+                if let Err(e) = self.config.save() {
+                    self.command_panel
+                        .push_error(format!("Failed to save config: {}", e));
+                } else {
+                    self.command_panel
+                        .push_message("Profile created".to_string());
+                }
+                if let Some(created) = self.config.connections.get(new_idx) {
+                    self.connection_form.view_profile(new_idx, created);
+                }
+            }
+            Action::ConnMgrDelete(idx) => {
+                self.config.delete_connection(idx);
+                if let Err(e) = self.config.save() {
+                    self.command_panel
+                        .push_error(format!("Failed to save config: {}", e));
+                } else {
+                    self.command_panel
+                        .push_message("Profile deleted".to_string());
+                }
+                self.connection_form.clear();
+            }
+            Action::ConnMgrConnect(idx) => {
+                let profile = self.config.connections.get(idx).cloned();
+                if let Some(profile) = profile {
+                    match self.connect_profile(&profile).await {
+                        Ok(()) => {
+                            // Switch to Browser layout on successful connect
+                            self.active_layout = ActiveLayout::Browser;
+                            self.layout_bar.active = ActiveLayout::Browser;
+                            self.focus.set_layout(ActiveLayout::Browser);
+                        }
+                        Err(e) if is_auth_error(&e) => {
+                            self.command_panel
+                                .push_error(format!("Authentication failed: {}", e));
+                            self.credential_prompt.show(profile);
+                        }
+                        Err(e) => {
+                            self.command_panel
+                                .push_error(format!("Connection failed: {}", e));
+                        }
+                    }
+                }
+            }
+
             Action::CloseTab(id) => {
                 self.tabs.retain(|t| t.id != id);
                 self.tab_bar.remove_tab(id);
@@ -1260,66 +1428,130 @@ impl App {
     fn render(&mut self, frame: &mut ratatui::Frame) {
         let full = frame.area();
 
-        // Vertical: tab bar (1) | content area | status bar (1)
+        // Vertical: layout_bar (1) | secondary_bar (1) | content area | status bar (1)
         let outer = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Min(3),
-            Constraint::Length(1),
+            Constraint::Length(1), // layout bar
+            Constraint::Length(1), // secondary bar (tab bar or "Connections Manager")
+            Constraint::Min(3),    // content
+            Constraint::Length(1), // status bar
         ])
         .split(full);
 
-        let tab_area = outer[0];
-        let content_area = outer[1];
-        let status_area = outer[2];
+        let layout_bar_area = outer[0];
+        let secondary_bar_area = outer[1];
+        let content_area = outer[2];
+        let status_area = outer[3];
 
-        self.tab_area = Some(tab_area);
+        self.layout_bar_area = Some(layout_bar_area);
 
-        // Render tab bar
-        self.tab_bar.render(frame, tab_area);
+        // Render layout bar
+        self.layout_bar.render(frame, layout_bar_area);
 
-        // Horizontal: tree (25%) | right panels (75%)
-        let horizontal =
-            Layout::horizontal([Constraint::Percentage(25), Constraint::Percentage(75)])
-                .split(content_area);
+        match self.active_layout {
+            ActiveLayout::Browser => {
+                self.tab_area = Some(secondary_bar_area);
 
-        let tree_area = horizontal[0];
-        let right_area = horizontal[1];
+                // Render tab bar in secondary row
+                self.tab_bar.render(frame, secondary_bar_area);
 
-        // Right side: detail (75%) | command (25%)
-        let right_vertical =
-            Layout::vertical([Constraint::Percentage(75), Constraint::Percentage(25)])
-                .split(right_area);
+                // Horizontal: tree (25%) | right panels (75%)
+                let horizontal =
+                    Layout::horizontal([Constraint::Percentage(25), Constraint::Percentage(75)])
+                        .split(content_area);
 
-        let detail_area = right_vertical[0];
-        let command_area = right_vertical[1];
+                let tree_area = horizontal[0];
+                let right_area = horizontal[1];
 
-        // Store areas for mouse hit-testing
-        self.tree_area = Some(tree_area);
-        self.detail_area = Some(detail_area);
-        self.command_area = Some(command_area);
+                // Right side: detail (75%) | command (25%)
+                let right_vertical =
+                    Layout::vertical([Constraint::Percentage(75), Constraint::Percentage(25)])
+                        .split(right_area);
 
-        // Render tree panel
-        let tree_focused = self.focus.is_focused(FocusTarget::TreePanel);
-        if let Some(tab) = self.active_tab() {
-            let items = TreePanel::build_tree_items(&tab.directory_tree.root);
-            let label = tab.label.clone();
-            self.tree_panel
-                .render_with_items(frame, tree_area, tree_focused, &items, &label);
-        } else {
-            self.tree_panel.render_empty(frame, tree_area, tree_focused);
+                let detail_area = right_vertical[0];
+                let command_area = right_vertical[1];
+
+                // Store areas for mouse hit-testing
+                self.tree_area = Some(tree_area);
+                self.detail_area = Some(detail_area);
+                self.command_area = Some(command_area);
+
+                // Render tree panel
+                let tree_focused = self.focus.is_focused(FocusTarget::TreePanel);
+                if let Some(tab) = self.active_tab() {
+                    let items = TreePanel::build_tree_items(&tab.directory_tree.root);
+                    let label = tab.label.clone();
+                    self.tree_panel.render_with_items(
+                        frame,
+                        tree_area,
+                        tree_focused,
+                        &items,
+                        &label,
+                    );
+                } else {
+                    self.tree_panel.render_empty(frame, tree_area, tree_focused);
+                }
+
+                // Render detail and command panels
+                self.detail_panel.render(
+                    frame,
+                    detail_area,
+                    self.focus.is_focused(FocusTarget::DetailPanel),
+                );
+                self.command_panel.render(
+                    frame,
+                    command_area,
+                    self.focus.is_focused(FocusTarget::CommandPanel),
+                );
+            }
+            ActiveLayout::Connections => {
+                // Render "Connections Manager" header in secondary bar
+                let header = ratatui::widgets::Paragraph::new(ratatui::text::Line::from(
+                    ratatui::text::Span::styled(" Connections Manager", self.theme.header),
+                ))
+                .style(self.theme.status_bar);
+                frame.render_widget(header, secondary_bar_area);
+
+                // Horizontal: connections tree (30%) | connection form (70%)
+                let horizontal =
+                    Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
+                        .split(content_area);
+
+                let conn_tree_area = horizontal[0];
+                let conn_form_area = horizontal[1];
+
+                self.conn_tree_area = Some(conn_tree_area);
+                self.conn_form_area = Some(conn_form_area);
+
+                // Build active connections info
+                let active_conns: Vec<ActiveConnInfo> = self
+                    .tabs
+                    .iter()
+                    .map(|t| ActiveConnInfo {
+                        id: t.id,
+                        label: t.label.clone(),
+                    })
+                    .collect();
+
+                // Build and render connections tree
+                let tree_focused = self.focus.is_focused(FocusTarget::ConnectionsTree);
+                let items = self
+                    .connections_tree
+                    .build_tree_items(&self.config.connections, &active_conns);
+                self.connections_tree.render_with_items(
+                    frame,
+                    conn_tree_area,
+                    tree_focused,
+                    &items,
+                );
+
+                // Render connection form
+                self.connection_form.render(
+                    frame,
+                    conn_form_area,
+                    self.focus.is_focused(FocusTarget::ConnectionForm),
+                );
+            }
         }
-
-        // Render detail and command panels
-        self.detail_panel.render(
-            frame,
-            detail_area,
-            self.focus.is_focused(FocusTarget::DetailPanel),
-        );
-        self.command_panel.render(
-            frame,
-            command_area,
-            self.focus.is_focused(FocusTarget::CommandPanel),
-        );
 
         // Status bar
         self.status_bar.render(frame, status_area, false);

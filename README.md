@@ -14,7 +14,7 @@ Browse, search, edit, and manage LDAP directories from the comfort of your termi
 - **Bulk update** -- Apply modifications across entries matching a filter
 - **Export / Import** -- LDIF, JSON, CSV, and XLSX formats
 - **Schema viewer** -- Browse object classes and attribute type definitions
-- **Themes** -- Dark, light, solarized, and nord built-in themes
+- **Themes** -- Dark (Catppuccin Mocha), light, solarized, nord, and matrix built-in themes
 - **Credentials** -- Interactive prompt, shell command (`pass`, `op`, etc.), or OS keychain
 - **Server detection** -- Identifies OpenLDAP, Active Directory, and other vendors
 - **TLS** -- Auto-negotiation, LDAPS, StartTLS, or plaintext
@@ -343,21 +343,15 @@ Loom reads `~/.config/loom/config.toml`. Create it manually or press `Ctrl+T` to
 
 ```toml
 [general]
-theme = "dark"               # dark | light | solarized | nord
+theme = "dark"               # dark | light | solarized | nord | matrix
 tick_rate_ms = 250
 log_level = "info"
 
-[defaults]
-page_size = 500
-timeout_secs = 30
-tls_mode = "auto"            # auto | ldaps | starttls | none
-referral_policy = "ignore"
-
-[export]
-csv_delimiter = ","
-csv_multivalue_separator = ";"
-json_pretty = true
-ldif_line_length = 76
+[keybindings]
+# Override just what you want; everything else keeps Ctrl defaults
+# quit = "Alt+q"
+# show_connect_dialog = "Alt+t"
+# toggle_layout = "F1"
 
 [[connections]]
 name = "Production"
@@ -401,11 +395,14 @@ credential_method = "keychain"
 
 ## Keybindings
 
+All global keybindings are customizable via the `[keybindings]` section in `config.toml`.
+
 ### Global
 
 | Key | Action |
 |-----|--------|
-| `q` / `Ctrl+C` | Quit |
+| `q` | Quit |
+| `Ctrl+C` | Force quit |
 | `Tab` | Focus next panel |
 | `Shift+Tab` | Focus previous panel |
 | `/` | Focus search input |
@@ -417,6 +414,7 @@ credential_method = "keychain"
 | `Ctrl+S` | Schema viewer |
 | `Ctrl+L` | Toggle log panel |
 | `Ctrl+W` | Save ad-hoc connection to config |
+| `Ctrl+G` | Toggle layout (Browser / Connections) |
 
 ### Tree panel
 
@@ -486,7 +484,7 @@ User Input --> KeyEvent --> Action --> process_action() --> spawn async task
 # Check all crates
 cargo check --workspace
 
-# Run tests (96 tests: 57 core + 7 integration + 32 TUI)
+# Run tests (125 tests: 57 core + 7 integration + 61 TUI)
 cargo test --workspace
 
 # Lint
