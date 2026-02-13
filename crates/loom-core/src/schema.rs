@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ldap3::{Scope, SearchEntry};
 use serde::{Deserialize, Serialize};
@@ -85,6 +85,60 @@ impl SchemaCache {
         self.get_attribute_type(name)
             .map(|at| at.single_value)
             .unwrap_or(false)
+    }
+
+    /// Return all allowed attributes for the given object classes,
+    /// walking the superior chain to collect inherited MUST/MAY attrs.
+    /// Filters out `no_user_modification` attributes.
+    pub fn allowed_attributes(&self, object_classes: &[&str]) -> Vec<String> {
+        let mut attrs = BTreeSet::new();
+        for oc_name in object_classes {
+            self.collect_oc_attrs(&oc_name.to_lowercase(), &mut attrs);
+        }
+        // Filter out non-user-modifiable attributes
+        attrs
+            .into_iter()
+            .filter(|name| {
+                self.get_attribute_type(name)
+                    .map(|at| !at.no_user_modification)
+                    .unwrap_or(true)
+            })
+            .collect()
+    }
+
+    /// Recursively collect MUST + MAY attributes for an object class,
+    /// walking the superior chain.
+    fn collect_oc_attrs(&self, oc_lower: &str, attrs: &mut BTreeSet<String>) {
+        if let Some(oc) = self.object_classes.get(oc_lower) {
+            for a in &oc.must {
+                attrs.insert(a.clone());
+            }
+            for a in &oc.may {
+                attrs.insert(a.clone());
+            }
+            if let Some(ref sup) = oc.superior {
+                self.collect_oc_attrs(&sup.to_lowercase(), attrs);
+            }
+        }
+    }
+
+    /// Return all user-modifiable attribute names in the schema.
+    /// Deduplicates by using the first (canonical) name from each attribute type.
+    pub fn all_user_attributes(&self) -> Vec<String> {
+        let mut seen_oids = BTreeSet::new();
+        let mut result = Vec::new();
+        for at in self.attribute_types.values() {
+            if at.no_user_modification {
+                continue;
+            }
+            if seen_oids.insert(at.oid.clone()) {
+                if let Some(name) = at.names.first() {
+                    result.push(name.clone());
+                }
+            }
+        }
+        result.sort();
+        result
     }
 }
 
@@ -413,6 +467,116 @@ mod tests {
         assert_eq!(
             map_syntax_oid("1.3.6.1.4.1.1466.115.121.1.27"),
             AttributeSyntax::Integer
+        );
+    }
+
+    fn build_test_schema() -> SchemaCache {
+        let mut cache = SchemaCache::new();
+
+        // Object classes: top -> person -> inetOrgPerson
+        let top = ObjectClassInfo {
+            oid: "2.5.6.0".to_string(),
+            names: vec!["top".to_string()],
+            description: None,
+            superior: None,
+            kind: ObjectClassKind::Abstract,
+            must: vec!["objectClass".to_string()],
+            may: vec![],
+        };
+        let person = ObjectClassInfo {
+            oid: "2.5.6.6".to_string(),
+            names: vec!["person".to_string()],
+            description: None,
+            superior: Some("top".to_string()),
+            kind: ObjectClassKind::Structural,
+            must: vec!["sn".to_string(), "cn".to_string()],
+            may: vec!["userPassword".to_string(), "telephoneNumber".to_string()],
+        };
+        let inet = ObjectClassInfo {
+            oid: "2.16.840.1.113730.3.2.2".to_string(),
+            names: vec!["inetOrgPerson".to_string()],
+            description: None,
+            superior: Some("person".to_string()),
+            kind: ObjectClassKind::Structural,
+            must: vec![],
+            may: vec!["mail".to_string(), "uid".to_string()],
+        };
+        cache.object_classes.insert("top".to_string(), top);
+        cache.object_classes.insert("person".to_string(), person);
+        cache
+            .object_classes
+            .insert("inetorgperson".to_string(), inet);
+
+        // Attribute types
+        for (oid, name, no_user_mod) in [
+            ("2.5.4.0", "objectClass", true),
+            ("2.5.4.4", "sn", false),
+            ("2.5.4.3", "cn", false),
+            ("2.5.4.35", "userPassword", false),
+            ("2.5.4.20", "telephoneNumber", false),
+            ("0.9.2342.19200300.100.1.3", "mail", false),
+            ("0.9.2342.19200300.100.1.1", "uid", false),
+            ("2.5.18.1", "createTimestamp", true),
+        ] {
+            let at = AttributeTypeInfo {
+                oid: oid.to_string(),
+                names: vec![name.to_string()],
+                description: None,
+                syntax: AttributeSyntax::String,
+                single_value: false,
+                no_user_modification: no_user_mod,
+            };
+            cache.attribute_types.insert(name.to_lowercase(), at);
+        }
+        cache
+    }
+
+    #[test]
+    fn test_allowed_attributes_walks_superior() {
+        let schema = build_test_schema();
+        let allowed = schema.allowed_attributes(&["inetOrgPerson"]);
+        // Should include inetOrgPerson's own MAY (mail, uid)
+        // + person's MUST/MAY (sn, cn, userPassword, telephoneNumber)
+        // + top's MUST (objectClass) — but objectClass is no_user_modification, so filtered out
+        assert!(allowed.contains(&"mail".to_string()));
+        assert!(allowed.contains(&"uid".to_string()));
+        assert!(allowed.contains(&"sn".to_string()));
+        assert!(allowed.contains(&"cn".to_string()));
+        assert!(allowed.contains(&"userPassword".to_string()));
+        assert!(allowed.contains(&"telephoneNumber".to_string()));
+        assert!(
+            !allowed.contains(&"objectClass".to_string()),
+            "objectClass should be filtered (no_user_modification)"
+        );
+        assert!(
+            !allowed.contains(&"createTimestamp".to_string()),
+            "createTimestamp not in any OC"
+        );
+    }
+
+    #[test]
+    fn test_allowed_attributes_deduplicates() {
+        let schema = build_test_schema();
+        // Both person and inetOrgPerson will contribute cn via inheritance
+        let allowed = schema.allowed_attributes(&["person", "inetOrgPerson"]);
+        let cn_count = allowed.iter().filter(|a| *a == "cn").count();
+        assert_eq!(cn_count, 1, "cn should appear exactly once");
+    }
+
+    #[test]
+    fn test_all_user_attributes() {
+        let schema = build_test_schema();
+        let all = schema.all_user_attributes();
+        assert!(all.contains(&"cn".to_string()));
+        assert!(all.contains(&"sn".to_string()));
+        assert!(all.contains(&"mail".to_string()));
+        assert!(
+            !all.contains(&"objectClass".to_string()),
+            "no_user_modification attrs excluded"
+        );
+        assert!(
+            !all.contains(&"createTimestamp".to_string()),
+            "no_user_modification attrs excluded"
         );
     }
 }
