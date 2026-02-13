@@ -139,7 +139,7 @@ impl CredentialPromptDialog {
             Constraint::Length(2), // Host info
             Constraint::Length(2), // Bind DN
             Constraint::Length(2), // Password
-            Constraint::Min(1),   // Hints
+            Constraint::Min(1),    // Hints
         ])
         .split(inner);
 
@@ -154,10 +154,24 @@ impl CredentialPromptDialog {
         frame.render_widget(Paragraph::new(info_line), layout[0]);
 
         // Bind DN field
-        self.render_field(frame, layout[1], "Bind DN", &self.bind_dn, Field::BindDn, false);
+        self.render_field(
+            frame,
+            layout[1],
+            "Bind DN",
+            &self.bind_dn,
+            Field::BindDn,
+            false,
+        );
 
         // Password field
-        self.render_field(frame, layout[2], "Password", &self.password, Field::Password, true);
+        self.render_field(
+            frame,
+            layout[2],
+            "Password",
+            &self.password,
+            Field::Password,
+            true,
+        );
 
         // Hints
         let hints = Paragraph::new(Line::from(Span::styled(

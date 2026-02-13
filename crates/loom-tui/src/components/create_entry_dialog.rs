@@ -186,7 +186,7 @@ impl CreateEntryDialog {
             Constraint::Length(2), // Object Classes
             Constraint::Length(2), // Additional Attributes
             Constraint::Length(2), // Preview full DN
-            Constraint::Min(1),   // Hints
+            Constraint::Min(1),    // Hints
         ])
         .split(inner);
 
@@ -198,7 +198,13 @@ impl CreateEntryDialog {
         frame.render_widget(Paragraph::new(parent_lines), layout[0]);
 
         // RDN field
-        self.render_text_field(frame, layout[1], "RDN (e.g. cn=NewUser)", &self.rdn, CreateField::Rdn);
+        self.render_text_field(
+            frame,
+            layout[1],
+            "RDN (e.g. cn=NewUser)",
+            &self.rdn,
+            CreateField::Rdn,
+        );
 
         // Object Classes field
         self.render_text_field(

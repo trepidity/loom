@@ -141,7 +141,9 @@ impl NewConnectionDialog {
         // Validate port
         let port: u16 = match self.port.parse() {
             Ok(p) => p,
-            Err(_) => return Action::ErrorMessage("Port must be a valid number (1-65535)".to_string()),
+            Err(_) => {
+                return Action::ErrorMessage("Port must be a valid number (1-65535)".to_string())
+            }
         };
 
         // Auto-generate name if empty
@@ -215,7 +217,7 @@ impl NewConnectionDialog {
             Constraint::Length(2), // Bind DN
             Constraint::Length(2), // Base DN
             Constraint::Length(2), // Password
-            Constraint::Min(1),   // Hints
+            Constraint::Min(1),    // Hints
         ])
         .split(inner);
 
@@ -234,9 +236,30 @@ impl NewConnectionDialog {
         self.render_field(frame, layout[1], "Name", &self.name, Field::Name, false);
         self.render_field(frame, layout[2], "Host", &self.host, Field::Host, false);
         self.render_field(frame, layout[3], "Port", &self.port, Field::Port, false);
-        self.render_field(frame, layout[4], "Bind DN", &self.bind_dn, Field::BindDn, false);
-        self.render_field(frame, layout[5], "Base DN", &self.base_dn, Field::BaseDn, false);
-        self.render_field(frame, layout[6], "Password", &self.password, Field::Password, true);
+        self.render_field(
+            frame,
+            layout[4],
+            "Bind DN",
+            &self.bind_dn,
+            Field::BindDn,
+            false,
+        );
+        self.render_field(
+            frame,
+            layout[5],
+            "Base DN",
+            &self.base_dn,
+            Field::BaseDn,
+            false,
+        );
+        self.render_field(
+            frame,
+            layout[6],
+            "Password",
+            &self.password,
+            Field::Password,
+            true,
+        );
 
         // Hints
         let hints = Paragraph::new(Line::from(Span::styled(

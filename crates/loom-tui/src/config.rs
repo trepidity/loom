@@ -93,7 +93,6 @@ impl Default for GeneralConfig {
     }
 }
 
-
 impl AppConfig {
     /// Load config from ~/.config/loom/config.toml, with fallback to defaults.
     pub fn load() -> Self {
@@ -139,8 +138,8 @@ impl AppConfig {
         };
 
         // Serialize just the profile as a [[connections]] block
-        let block = toml::to_string(profile)
-            .map_err(|e| format!("Failed to serialize profile: {}", e))?;
+        let block =
+            toml::to_string(profile).map_err(|e| format!("Failed to serialize profile: {}", e))?;
 
         if !content.is_empty() && !content.ends_with('\n') {
             content.push('\n');

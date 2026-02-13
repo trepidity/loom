@@ -450,10 +450,7 @@ impl App {
             tokio::spawn(async move {
                 let mut conn = connection.lock().await;
                 let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
-                match conn
-                    .search_subtree(&base_dn, &filter, attr_refs)
-                    .await
-                {
+                match conn.search_subtree(&base_dn, &filter, attr_refs).await {
                     Ok(entries) => {
                         let filepath = std::path::Path::new(&path);
                         match loom_core::export::export_entries(&entries, filepath) {
@@ -624,7 +621,9 @@ impl App {
                             let panel_action = match self.focus.current() {
                                 FocusTarget::TreePanel => self.tree_panel.handle_key_event(key),
                                 FocusTarget::DetailPanel => self.detail_panel.handle_key_event(key),
-                                FocusTarget::CommandPanel => self.command_panel.handle_input_key(key),
+                                FocusTarget::CommandPanel => {
+                                    self.command_panel.handle_input_key(key)
+                                }
                             };
                             if matches!(panel_action, Action::None) {
                                 keymap::resolve_key(key, self.focus.current())
@@ -809,9 +808,8 @@ impl App {
                         }
                     }
                 } else {
-                    self.command_panel.push_message(
-                        "No ad-hoc connection to save".to_string(),
-                    );
+                    self.command_panel
+                        .push_message("No ad-hoc connection to save".to_string());
                 }
             }
             Action::CloseTab(id) => {

@@ -8,13 +8,8 @@ use crate::error::CoreError;
 impl LdapConnection {
     /// Search for immediate children of the given DN.
     pub async fn search_children(&mut self, parent_dn: &str) -> Result<Vec<LdapEntry>, CoreError> {
-        self.search(
-            parent_dn,
-            Scope::OneLevel,
-            "(objectClass=*)",
-            vec!["*"],
-        )
-        .await
+        self.search(parent_dn, Scope::OneLevel, "(objectClass=*)", vec!["*"])
+            .await
     }
 
     /// Search for a single entry by exact DN.

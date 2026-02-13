@@ -96,18 +96,14 @@ impl ExportDialog {
                 self.update_filename_ext();
                 Action::None
             }
-            KeyCode::Up | KeyCode::Char('k')
-                if self.active_field == ExportField::Format =>
-            {
+            KeyCode::Up | KeyCode::Char('k') if self.active_field == ExportField::Format => {
                 if self.format_idx > 0 {
                     self.format_idx -= 1;
                     self.update_filename_ext();
                 }
                 Action::None
             }
-            KeyCode::Down | KeyCode::Char('j')
-                if self.active_field == ExportField::Format =>
-            {
+            KeyCode::Down | KeyCode::Char('j') if self.active_field == ExportField::Format => {
                 if self.format_idx + 1 < FORMATS.len() {
                     self.format_idx += 1;
                     self.update_filename_ext();
@@ -199,11 +195,11 @@ impl ExportDialog {
 
         // Layout: filter(2) | attributes(2) | format(formats+1) | filename(2) | hints(1)
         let layout = Layout::vertical([
-            Constraint::Length(2),                      // Filter
-            Constraint::Length(2),                      // Attributes
+            Constraint::Length(2),                        // Filter
+            Constraint::Length(2),                        // Attributes
             Constraint::Length(FORMATS.len() as u16 + 1), // Format
-            Constraint::Length(2),                      // Filename
-            Constraint::Min(1),                         // Hints
+            Constraint::Length(2),                        // Filename
+            Constraint::Min(1),                           // Hints
         ])
         .split(inner);
 

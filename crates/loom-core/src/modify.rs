@@ -17,13 +17,18 @@ impl LdapConnection {
         dn: &str,
         mods: Vec<Mod<String>>,
     ) -> Result<(), CoreError> {
-        debug!("modify_entry dn={} relax_rules={}", dn, self.settings.relax_rules);
+        debug!(
+            "modify_entry dn={} relax_rules={}",
+            dn, self.settings.relax_rules
+        );
         for m in &mods {
             match m {
                 Mod::Add(attr, vals) => debug!("  mod ADD attr={} vals={:?}", attr, vals),
                 Mod::Delete(attr, vals) => debug!("  mod DELETE attr={} vals={:?}", attr, vals),
                 Mod::Replace(attr, vals) => debug!("  mod REPLACE attr={} vals={:?}", attr, vals),
-                Mod::Increment(attr, vals) => debug!("  mod INCREMENT attr={} vals={:?}", attr, vals),
+                Mod::Increment(attr, vals) => {
+                    debug!("  mod INCREMENT attr={} vals={:?}", attr, vals)
+                }
             }
         }
 
@@ -76,7 +81,10 @@ impl LdapConnection {
         attr: &str,
         value: &str,
     ) -> Result<(), CoreError> {
-        debug!("add_attribute_value dn={} attr={} value={}", dn, attr, value);
+        debug!(
+            "add_attribute_value dn={} attr={} value={}",
+            dn, attr, value
+        );
         let mods = vec![Mod::Add(
             attr.to_string(),
             HashSet::from([value.to_string()]),
@@ -91,7 +99,10 @@ impl LdapConnection {
         attr: &str,
         value: &str,
     ) -> Result<(), CoreError> {
-        debug!("delete_attribute_value dn={} attr={} value={}", dn, attr, value);
+        debug!(
+            "delete_attribute_value dn={} attr={} value={}",
+            dn, attr, value
+        );
         let mods = vec![Mod::Delete(
             attr.to_string(),
             HashSet::from([value.to_string()]),
@@ -105,7 +116,10 @@ impl LdapConnection {
         dn: &str,
         attrs: Vec<(String, HashSet<String>)>,
     ) -> Result<(), CoreError> {
-        debug!("add_entry dn={} relax_rules={}", dn, self.settings.relax_rules);
+        debug!(
+            "add_entry dn={} relax_rules={}",
+            dn, self.settings.relax_rules
+        );
         for (attr, vals) in &attrs {
             debug!("  attr={} vals={:?}", attr, vals);
         }
@@ -135,7 +149,10 @@ impl LdapConnection {
 
     /// Delete an entry by DN.
     pub async fn delete_entry(&mut self, dn: &str) -> Result<(), CoreError> {
-        debug!("delete_entry dn={} relax_rules={}", dn, self.settings.relax_rules);
+        debug!(
+            "delete_entry dn={} relax_rules={}",
+            dn, self.settings.relax_rules
+        );
 
         let result = if self.settings.relax_rules {
             self.ldap
