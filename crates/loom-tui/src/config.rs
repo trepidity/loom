@@ -55,7 +55,7 @@ impl ConnectionProfile {
 }
 
 /// Top-level application configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub general: GeneralConfig,
@@ -93,14 +93,6 @@ impl Default for GeneralConfig {
     }
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            general: GeneralConfig::default(),
-            connections: Vec::new(),
-        }
-    }
-}
 
 impl AppConfig {
     /// Load config from ~/.config/loom/config.toml, with fallback to defaults.

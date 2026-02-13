@@ -4,18 +4,13 @@ use tracing::{debug, warn};
 use crate::error::CoreError;
 
 /// How to obtain credentials for a connection.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CredentialMethod {
+    #[default]
     Prompt,
     Command,
     Keychain,
-}
-
-impl Default for CredentialMethod {
-    fn default() -> Self {
-        Self::Prompt
-    }
 }
 
 /// Resolve a password using the configured credential method.

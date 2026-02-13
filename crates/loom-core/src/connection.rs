@@ -6,19 +6,14 @@ use tracing::{info, warn};
 use crate::error::CoreError;
 
 /// TLS mode for LDAP connections.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TlsMode {
+    #[default]
     Auto,
     Ldaps,
     StartTls,
     None,
-}
-
-impl Default for TlsMode {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 impl TlsMode {

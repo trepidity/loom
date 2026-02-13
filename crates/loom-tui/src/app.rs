@@ -51,6 +51,7 @@ struct ConnectionTab {
 /// The main application.
 pub struct App {
     config: AppConfig,
+    #[allow(dead_code)]
     theme: Theme,
     should_quit: bool,
     next_conn_id: ConnectionId,
@@ -144,6 +145,7 @@ impl App {
         self.tabs.iter().find(|t| t.id == id)
     }
 
+    #[allow(dead_code)]
     fn active_tab_mut(&mut self) -> Option<&mut ConnectionTab> {
         let id = self.active_tab_id?;
         self.tabs.iter_mut().find(|t| t.id == id)

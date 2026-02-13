@@ -131,7 +131,7 @@ impl LdapConnection {
             // Parse attributeTypes
             if let Some(attr_types) = find_values_ci(&attrs, "attributetypes") {
                 for def in attr_types {
-                    match parse_attribute_type(&def) {
+                    match parse_attribute_type(def) {
                         Some(at) => {
                             for name in &at.names {
                                 cache
@@ -152,7 +152,7 @@ impl LdapConnection {
             // Parse objectClasses
             if let Some(obj_classes) = find_values_ci(&attrs, "objectclasses") {
                 for def in obj_classes {
-                    match parse_object_class(&def) {
+                    match parse_object_class(def) {
                         Some(oc) => {
                             for name in &oc.names {
                                 cache.object_classes.insert(name.to_lowercase(), oc.clone());
@@ -272,9 +272,8 @@ fn parse_names(s: &str) -> Vec<String> {
                     .map(|s| s.to_string())
                     .collect();
             }
-        } else if rest.starts_with('\'') {
+        } else if let Some(rest) = rest.strip_prefix('\'') {
             // Single name: 'name'
-            let rest = &rest[1..];
             if let Some(end) = rest.find('\'') {
                 return vec![rest[..end].to_string()];
             }
