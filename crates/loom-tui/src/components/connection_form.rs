@@ -268,6 +268,11 @@ impl ConnectionForm {
         }
     }
 
+    /// Whether the form is actively being edited (Tab should stay within form).
+    pub fn is_editing(&self) -> bool {
+        matches!(self.mode, FormMode::Edit | FormMode::Create)
+    }
+
     pub fn handle_key_event(&mut self, key: KeyEvent) -> Action {
         match self.mode {
             FormMode::View => self.handle_view_key(key),
@@ -316,11 +321,11 @@ impl ConnectionForm {
                 }
                 Action::None
             }
-            (KeyModifiers::NONE, KeyCode::Tab) => {
+            (KeyModifiers::NONE, KeyCode::Tab) | (KeyModifiers::NONE, KeyCode::Down) => {
                 self.active_field = self.active_field.next();
                 Action::None
             }
-            (KeyModifiers::SHIFT, KeyCode::BackTab) => {
+            (KeyModifiers::SHIFT, KeyCode::BackTab) | (KeyModifiers::NONE, KeyCode::Up) => {
                 self.active_field = self.active_field.prev();
                 Action::None
             }
@@ -535,8 +540,8 @@ impl ConnectionForm {
         // Hints
         let hints_text = match self.mode {
             FormMode::View => "e:Edit  c:Connect  d:Delete",
-            FormMode::Edit => "Tab:next  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
-            FormMode::Create => "Tab:next  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
+            FormMode::Edit => "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
+            FormMode::Create => "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
         };
         let hints = Paragraph::new(Line::from(Span::styled(hints_text, self.theme.dimmed)));
         frame.render_widget(hints, layout[12]);

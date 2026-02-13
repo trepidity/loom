@@ -732,6 +732,12 @@ impl App {
                             && self.active_layout == ActiveLayout::Browser
                         {
                             self.command_panel.handle_input_key(key)
+                        } else if self.connection_form.is_editing()
+                            && self.active_layout == ActiveLayout::Connections
+                            && self.focus.current() == FocusTarget::ConnectionForm
+                        {
+                            // Connection form in edit/create mode captures all keys
+                            self.connection_form.handle_key_event(key)
                         } else if self.active_layout == ActiveLayout::Connections {
                             // Connections layout: route to connections panels first
                             let panel_action = match self.focus.current() {
