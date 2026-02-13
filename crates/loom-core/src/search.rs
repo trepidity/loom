@@ -12,15 +12,17 @@ impl LdapConnection {
             parent_dn,
             Scope::OneLevel,
             "(objectClass=*)",
-            vec!["*", "+"],
+            vec!["*"],
         )
         .await
     }
 
     /// Search for a single entry by exact DN.
+    /// Requests only user attributes ("*"). Operational attributes are excluded
+    /// to avoid displaying non-modifiable server-internal attributes.
     pub async fn search_entry(&mut self, dn: &str) -> Result<Option<LdapEntry>, CoreError> {
         let results = self
-            .search(dn, Scope::Base, "(objectClass=*)", vec!["*", "+"])
+            .search(dn, Scope::Base, "(objectClass=*)", vec!["*"])
             .await?;
         Ok(results.into_iter().next())
     }
