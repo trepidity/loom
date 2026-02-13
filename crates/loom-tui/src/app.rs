@@ -9,6 +9,7 @@ use tracing::{debug, error};
 use loom_core::bulk::BulkMod;
 use loom_core::connection::LdapConnection;
 use loom_core::credentials::{CredentialMethod, CredentialProvider};
+use loom_core::offline::OfflineDirectory;
 use loom_core::schema::{AttributeSyntax, SchemaCache};
 use loom_core::tree::{DirectoryTree, TreeNode};
 
@@ -41,13 +42,19 @@ use crate::keymap::Keymap;
 use crate::theme::Theme;
 use crate::tui;
 
+/// Backend for a connection tab — either live LDAP or offline/example.
+enum TabBackend {
+    Live(Arc<Mutex<LdapConnection>>),
+    Offline(OfflineDirectory),
+}
+
 /// A single connection tab's state.
 struct ConnectionTab {
     id: ConnectionId,
     label: String,
     host: String,
     server_type: String,
-    connection: Arc<Mutex<LdapConnection>>,
+    backend: TabBackend,
     directory_tree: DirectoryTree,
     schema: Option<SchemaCache>,
 }
@@ -207,6 +214,10 @@ impl App {
     }
 
     async fn connect_profile(&mut self, profile: &ConnectionProfile) -> anyhow::Result<()> {
+        if profile.offline {
+            self.connect_offline();
+            return Ok(());
+        }
         if profile.bind_dn.is_some() {
             match resolve_password(profile) {
                 Ok(password) if !password.is_empty() => {
@@ -221,6 +232,33 @@ impl App {
         } else {
             self.connect_with_password(profile, "").await
         }
+    }
+
+    fn connect_offline(&mut self) {
+        let offline = OfflineDirectory::load_embedded();
+        let base_dn = offline.base_dn().to_string();
+        let schema = offline.schema().clone();
+        let conn_id = self.allocate_conn_id();
+
+        let tab = ConnectionTab {
+            id: conn_id,
+            label: "Example Directory".to_string(),
+            host: "contoso.example".to_string(),
+            server_type: "Active Directory (Example)".to_string(),
+            backend: TabBackend::Offline(offline),
+            directory_tree: DirectoryTree::new(base_dn.clone()),
+            schema: Some(schema),
+        };
+
+        self.tabs.push(tab);
+        self.tab_bar
+            .add_tab(conn_id, "Example Directory".to_string());
+        self.active_tab_id = Some(conn_id);
+        self.spawn_load_children(conn_id, base_dn);
+        self.command_panel
+            .push_message("Connected to example directory (read-only)".to_string());
+        self.status_bar
+            .set_connected("contoso.example", "Active Directory (Example)");
     }
 
     async fn connect_with_password(
@@ -272,7 +310,7 @@ impl App {
             label: label.clone(),
             host,
             server_type: server_type_str,
-            connection,
+            backend: TabBackend::Live(connection),
             directory_tree,
             schema: None,
         };
@@ -293,174 +331,230 @@ impl App {
     fn spawn_load_children(&self, conn_id: ConnectionId, dn: String) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                let result = match conn.search_children(&dn).await {
-                    Ok(entries) => Ok(entries),
-                    Err(e) if LdapConnection::is_connection_error(&e) => {
-                        let _ = tx.send(Action::StatusMessage("Reconnecting...".to_string()));
-                        if conn.reconnect().await.is_ok() {
-                            conn.search_children(&dn).await
-                        } else {
-                            Err(e)
-                        }
-                    }
-                    Err(e) => Err(e),
-                };
-
-                match result {
-                    Ok(entries) => {
-                        let nodes: Vec<TreeNode> = entries
-                            .iter()
-                            .map(|e| TreeNode::new(e.dn.clone()))
-                            .collect();
-                        let _ = tx.send(Action::TreeChildrenLoaded(conn_id, dn, nodes));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!(
-                            "Failed to load {}: {}",
-                            dn, e
-                        )));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(dir) => {
+                    let nodes = dir.children(&dn);
+                    let _ = tx.send(Action::TreeChildrenLoaded(conn_id, dn, nodes));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        let result = match conn.search_children(&dn).await {
+                            Ok(entries) => Ok(entries),
+                            Err(e) if LdapConnection::is_connection_error(&e) => {
+                                let _ =
+                                    tx.send(Action::StatusMessage("Reconnecting...".to_string()));
+                                if conn.reconnect().await.is_ok() {
+                                    conn.search_children(&dn).await
+                                } else {
+                                    Err(e)
+                                }
+                            }
+                            Err(e) => Err(e),
+                        };
+
+                        match result {
+                            Ok(entries) => {
+                                let nodes: Vec<TreeNode> = entries
+                                    .iter()
+                                    .map(|e| TreeNode::new(e.dn.clone()))
+                                    .collect();
+                                let _ = tx.send(Action::TreeChildrenLoaded(conn_id, dn, nodes));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to load {}: {}",
+                                    dn, e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
     fn spawn_load_entry(&self, conn_id: ConnectionId, dn: String) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                let result = match conn.search_entry(&dn).await {
-                    Ok(entry) => Ok(entry),
-                    Err(e) if LdapConnection::is_connection_error(&e) => {
-                        let _ = tx.send(Action::StatusMessage("Reconnecting...".to_string()));
-                        if conn.reconnect().await.is_ok() {
-                            conn.search_entry(&dn).await
-                        } else {
-                            Err(e)
-                        }
-                    }
-                    Err(e) => Err(e),
-                };
-
-                match result {
-                    Ok(Some(entry)) => {
+            match &tab.backend {
+                TabBackend::Offline(dir) => match dir.entry(&dn) {
+                    Some(entry) => {
                         let _ = tx.send(Action::EntryLoaded(conn_id, entry));
                     }
-                    Ok(None) => {
+                    None => {
                         let _ = tx.send(Action::ErrorMessage(format!("Entry not found: {}", dn)));
                     }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!(
-                            "Failed to load {}: {}",
-                            dn, e
-                        )));
-                    }
+                },
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        let result = match conn.search_entry(&dn).await {
+                            Ok(entry) => Ok(entry),
+                            Err(e) if LdapConnection::is_connection_error(&e) => {
+                                let _ =
+                                    tx.send(Action::StatusMessage("Reconnecting...".to_string()));
+                                if conn.reconnect().await.is_ok() {
+                                    conn.search_entry(&dn).await
+                                } else {
+                                    Err(e)
+                                }
+                            }
+                            Err(e) => Err(e),
+                        };
+
+                        match result {
+                            Ok(Some(entry)) => {
+                                let _ = tx.send(Action::EntryLoaded(conn_id, entry));
+                            }
+                            Ok(None) => {
+                                let _ = tx
+                                    .send(Action::ErrorMessage(format!("Entry not found: {}", dn)));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to load {}: {}",
+                                    dn, e
+                                )));
+                            }
+                        }
+                    });
                 }
-            });
+            }
         }
     }
 
     fn spawn_search(&self, conn_id: ConnectionId, filter: String) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let base_dn = tab.directory_tree.root_dn.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                let result = match conn.search_subtree(&base_dn, &filter, vec!["*"]).await {
-                    Ok(entries) => Ok(entries),
-                    Err(e) if LdapConnection::is_connection_error(&e) => {
-                        let _ = tx.send(Action::StatusMessage("Reconnecting...".to_string()));
-                        if conn.reconnect().await.is_ok() {
-                            conn.search_subtree(&base_dn, &filter, vec!["*"]).await
-                        } else {
-                            Err(e)
-                        }
-                    }
-                    Err(e) => Err(e),
-                };
-
-                match result {
-                    Ok(entries) => {
-                        let _ = tx.send(Action::SearchResults(conn_id, entries));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!("Search failed: {}", e)));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(dir) => {
+                    let entries = dir.search(&base_dn, &filter);
+                    let _ = tx.send(Action::SearchResults(conn_id, entries));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        let result = match conn.search_subtree(&base_dn, &filter, vec!["*"]).await {
+                            Ok(entries) => Ok(entries),
+                            Err(e) if LdapConnection::is_connection_error(&e) => {
+                                let _ =
+                                    tx.send(Action::StatusMessage("Reconnecting...".to_string()));
+                                if conn.reconnect().await.is_ok() {
+                                    conn.search_subtree(&base_dn, &filter, vec!["*"]).await
+                                } else {
+                                    Err(e)
+                                }
+                            }
+                            Err(e) => Err(e),
+                        };
+
+                        match result {
+                            Ok(entries) => {
+                                let _ = tx.send(Action::SearchResults(conn_id, entries));
+                            }
+                            Err(e) => {
+                                let _ =
+                                    tx.send(Action::ErrorMessage(format!("Search failed: {}", e)));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
     fn spawn_save_attribute(&self, conn_id: ConnectionId, result: EditResult) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                debug!(
-                    "spawn_save_attribute: dn={} op={:?} new_value={}",
-                    result.dn, result.op, result.new_value
-                );
-                let mut conn = connection.lock().await;
-                let modify_result = match &result.op {
-                    EditOp::Replace { attr, old_value } => {
-                        conn.replace_attribute_value(&result.dn, attr, old_value, &result.new_value)
-                            .await
-                    }
-                    EditOp::Add { attr } => {
-                        conn.add_attribute_value(&result.dn, attr, &result.new_value)
-                            .await
-                    }
-                    EditOp::Delete { attr, value } => {
-                        conn.delete_attribute_value(&result.dn, attr, value).await
-                    }
-                };
-
-                match modify_result {
-                    Ok(()) => {
-                        let _ = tx.send(Action::AttributeSaved(result.dn));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!("Failed to save: {}", e)));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(_) => {
+                    let _ = tx.send(Action::ErrorMessage(
+                        "Example directory is read-only".to_string(),
+                    ));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        debug!(
+                            "spawn_save_attribute: dn={} op={:?} new_value={}",
+                            result.dn, result.op, result.new_value
+                        );
+                        let mut conn = connection.lock().await;
+                        let modify_result = match &result.op {
+                            EditOp::Replace { attr, old_value } => {
+                                conn.replace_attribute_value(
+                                    &result.dn,
+                                    attr,
+                                    old_value,
+                                    &result.new_value,
+                                )
+                                .await
+                            }
+                            EditOp::Add { attr } => {
+                                conn.add_attribute_value(&result.dn, attr, &result.new_value)
+                                    .await
+                            }
+                            EditOp::Delete { attr, value } => {
+                                conn.delete_attribute_value(&result.dn, attr, value).await
+                            }
+                        };
+
+                        match modify_result {
+                            Ok(()) => {
+                                let _ = tx.send(Action::AttributeSaved(result.dn));
+                            }
+                            Err(e) => {
+                                let _ =
+                                    tx.send(Action::ErrorMessage(format!("Failed to save: {}", e)));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
     fn spawn_load_schema(&self, conn_id: ConnectionId) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                match conn.load_schema(None).await {
-                    Ok(schema) => {
-                        let _ = tx.send(Action::SchemaLoaded(conn_id, Box::new(schema)));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!(
-                            "Failed to load schema: {}",
-                            e
-                        )));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(dir) => {
+                    let schema = dir.schema().clone();
+                    let _ = tx.send(Action::SchemaLoaded(conn_id, Box::new(schema)));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        match conn.load_schema(None).await {
+                            Ok(schema) => {
+                                let _ = tx.send(Action::SchemaLoaded(conn_id, Box::new(schema)));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to load schema: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -473,35 +567,58 @@ impl App {
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let base_dn = tab.directory_tree.root_dn.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
-                match conn.search_subtree(&base_dn, &filter, attr_refs).await {
-                    Ok(entries) => {
-                        let filepath = std::path::Path::new(&path);
-                        match loom_core::export::export_entries(&entries, filepath) {
-                            Ok(count) => {
-                                let _ = tx.send(Action::ExportComplete(format!(
-                                    "Exported {} entries to {}",
-                                    count, path
-                                )));
-                            }
-                            Err(e) => {
-                                let _ =
-                                    tx.send(Action::ErrorMessage(format!("Export failed: {}", e)));
-                            }
+            match &tab.backend {
+                TabBackend::Offline(dir) => {
+                    let entries = dir.search(&base_dn, &filter);
+                    let filepath = std::path::Path::new(&path);
+                    match loom_core::export::export_entries(&entries, filepath) {
+                        Ok(count) => {
+                            let _ = tx.send(Action::ExportComplete(format!(
+                                "Exported {} entries to {}",
+                                count, path
+                            )));
+                        }
+                        Err(e) => {
+                            let _ = tx.send(Action::ErrorMessage(format!("Export failed: {}", e)));
                         }
                     }
-                    Err(e) => {
-                        let _ =
-                            tx.send(Action::ErrorMessage(format!("Export search failed: {}", e)));
-                    }
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
+                        match conn.search_subtree(&base_dn, &filter, attr_refs).await {
+                            Ok(entries) => {
+                                let filepath = std::path::Path::new(&path);
+                                match loom_core::export::export_entries(&entries, filepath) {
+                                    Ok(count) => {
+                                        let _ = tx.send(Action::ExportComplete(format!(
+                                            "Exported {} entries to {}",
+                                            count, path
+                                        )));
+                                    }
+                                    Err(e) => {
+                                        let _ = tx.send(Action::ErrorMessage(format!(
+                                            "Export failed: {}",
+                                            e
+                                        )));
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Export search failed: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -513,24 +630,36 @@ impl App {
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                match conn.bulk_update(&filter, &modifications).await {
-                    Ok(result) => {
-                        let msg = format!(
-                            "Bulk update: {} succeeded, {} failed out of {}",
-                            result.succeeded, result.failed, result.total
-                        );
-                        let _ = tx.send(Action::BulkUpdateComplete(msg));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!("Bulk update failed: {}", e)));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(_) => {
+                    let _ = tx.send(Action::ErrorMessage(
+                        "Example directory is read-only".to_string(),
+                    ));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        match conn.bulk_update(&filter, &modifications).await {
+                            Ok(result) => {
+                                let msg = format!(
+                                    "Bulk update: {} succeeded, {} failed out of {}",
+                                    result.succeeded, result.failed, result.total
+                                );
+                                let _ = tx.send(Action::BulkUpdateComplete(msg));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Bulk update failed: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -542,52 +671,70 @@ impl App {
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                // Convert Vec<String> -> HashSet<String> for ldap3
-                let attrs: Vec<(String, std::collections::HashSet<String>)> = attributes
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into_iter().collect()))
-                    .collect();
-
-                match conn.add_entry(&dn, attrs).await {
-                    Ok(()) => {
-                        let _ = tx.send(Action::EntryCreated(dn));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!(
-                            "Failed to create entry: {}",
-                            e
-                        )));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(_) => {
+                    let _ = tx.send(Action::ErrorMessage(
+                        "Example directory is read-only".to_string(),
+                    ));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        // Convert Vec<String> -> HashSet<String> for ldap3
+                        let attrs: Vec<(String, std::collections::HashSet<String>)> = attributes
+                            .into_iter()
+                            .map(|(k, v)| (k, v.into_iter().collect()))
+                            .collect();
+
+                        match conn.add_entry(&dn, attrs).await {
+                            Ok(()) => {
+                                let _ = tx.send(Action::EntryCreated(dn));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to create entry: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
     fn spawn_delete_entry(&self, conn_id: ConnectionId, dn: String) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                match conn.delete_entry(&dn).await {
-                    Ok(()) => {
-                        let _ = tx.send(Action::EntryDeleted(dn));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Action::ErrorMessage(format!(
-                            "Failed to delete entry: {}",
-                            e
-                        )));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(_) => {
+                    let _ = tx.send(Action::ErrorMessage(
+                        "Example directory is read-only".to_string(),
+                    ));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        match conn.delete_entry(&dn).await {
+                            Ok(()) => {
+                                let _ = tx.send(Action::EntryDeleted(dn));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to delete entry: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -600,40 +747,56 @@ impl App {
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                let result = match conn
-                    .search_limited(&base_dn, &query, vec!["cn", "uid", "sn"], 50)
-                    .await
-                {
-                    Ok(entries) => Ok(entries),
-                    Err(e) if LdapConnection::is_connection_error(&e) => {
-                        if conn.reconnect().await.is_ok() {
-                            conn.search_limited(&base_dn, &query, vec!["cn", "uid", "sn"], 50)
-                                .await
-                        } else {
-                            Err(e)
-                        }
-                    }
-                    Err(e) => Err(e),
-                };
-
-                match result {
-                    Ok(entries) => {
-                        let _ = tx.send(Action::DnSearchResults {
-                            generation,
-                            entries,
-                        });
-                    }
-                    Err(e) => {
-                        // Silently log — no error popup spam during live search
-                        debug!("DN search failed: {}", e);
-                    }
+            match &tab.backend {
+                TabBackend::Offline(dir) => {
+                    let entries = dir.search_limited(&base_dn, &query, 50);
+                    let _ = tx.send(Action::DnSearchResults {
+                        generation,
+                        entries,
+                    });
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        let result = match conn
+                            .search_limited(&base_dn, &query, vec!["cn", "uid", "sn"], 50)
+                            .await
+                        {
+                            Ok(entries) => Ok(entries),
+                            Err(e) if LdapConnection::is_connection_error(&e) => {
+                                if conn.reconnect().await.is_ok() {
+                                    conn.search_limited(
+                                        &base_dn,
+                                        &query,
+                                        vec!["cn", "uid", "sn"],
+                                        50,
+                                    )
+                                    .await
+                                } else {
+                                    Err(e)
+                                }
+                            }
+                            Err(e) => Err(e),
+                        };
+
+                        match result {
+                            Ok(entries) => {
+                                let _ = tx.send(Action::DnSearchResults {
+                                    generation,
+                                    entries,
+                                });
+                            }
+                            Err(e) => {
+                                // Silently log — no error popup spam during live search
+                                debug!("DN search failed: {}", e);
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -646,21 +809,32 @@ impl App {
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let connection = tab.connection.clone();
             let tx = self.action_tx.clone();
 
-            tokio::spawn(async move {
-                let mut conn = connection.lock().await;
-                match conn.add_attribute_values(&dn, &attr, values).await {
-                    Ok(()) => {
-                        let _ = tx.send(Action::AttributeSaved(dn));
-                    }
-                    Err(e) => {
-                        let _ =
-                            tx.send(Action::ErrorMessage(format!("Failed to add values: {}", e)));
-                    }
+            match &tab.backend {
+                TabBackend::Offline(_) => {
+                    let _ = tx.send(Action::ErrorMessage(
+                        "Example directory is read-only".to_string(),
+                    ));
                 }
-            });
+                TabBackend::Live(connection) => {
+                    let connection = connection.clone();
+                    tokio::spawn(async move {
+                        let mut conn = connection.lock().await;
+                        match conn.add_attribute_values(&dn, &attr, values).await {
+                            Ok(()) => {
+                                let _ = tx.send(Action::AttributeSaved(dn));
+                            }
+                            Err(e) => {
+                                let _ = tx.send(Action::ErrorMessage(format!(
+                                    "Failed to add values: {}",
+                                    e
+                                )));
+                            }
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -903,14 +1077,21 @@ impl App {
                 }
             }
             Action::ShowConnectDialog => {
-                self.connect_dialog.show(self.config.connections.clone());
+                let mut profiles = self.config.connections.clone();
+                profiles.push(example_profile());
+                self.connect_dialog.show(profiles);
             }
             Action::ShowNewConnectionForm => {
                 self.connect_dialog.hide();
                 self.new_connection_dialog.show();
             }
             Action::ConnectByIndex(idx) => {
-                let profile = self.config.connections.get(idx).cloned();
+                // The example profile is appended after saved profiles
+                let profile = if idx == self.config.connections.len() {
+                    Some(example_profile())
+                } else {
+                    self.config.connections.get(idx).cloned()
+                };
                 if let Some(profile) = profile {
                     match self.connect_profile(&profile).await {
                         Ok(()) => {}
@@ -1008,7 +1189,11 @@ impl App {
 
             // Connections Manager
             Action::ConnMgrSelect(idx) => {
-                if let Some(profile) = self.config.connections.get(idx) {
+                if idx == self.config.connections.len() {
+                    // Example profile — show it in view mode
+                    let profile = example_profile();
+                    self.connection_form.view_profile(idx, &profile);
+                } else if let Some(profile) = self.config.connections.get(idx) {
                     self.connection_form.view_profile(idx, profile);
                 }
             }
@@ -1017,15 +1202,20 @@ impl App {
                 self.focus.set(FocusTarget::ConnectionForm);
             }
             Action::ConnMgrSave(idx, profile) => {
-                self.config.update_connection(idx, *profile);
-                if let Err(e) = self.config.save() {
+                if idx >= self.config.connections.len() {
                     self.command_panel
-                        .push_error(format!("Failed to save config: {}", e));
+                        .push_error("Cannot edit example profile".to_string());
                 } else {
-                    self.command_panel.push_message("Profile saved".to_string());
-                }
-                if let Some(updated) = self.config.connections.get(idx) {
-                    self.connection_form.view_profile(idx, updated);
+                    self.config.update_connection(idx, *profile);
+                    if let Err(e) = self.config.save() {
+                        self.command_panel
+                            .push_error(format!("Failed to save config: {}", e));
+                    } else {
+                        self.command_panel.push_message("Profile saved".to_string());
+                    }
+                    if let Some(updated) = self.config.connections.get(idx) {
+                        self.connection_form.view_profile(idx, updated);
+                    }
                 }
             }
             Action::ConnMgrCreate(profile) => {
@@ -1043,18 +1233,27 @@ impl App {
                 }
             }
             Action::ConnMgrDelete(idx) => {
-                self.config.delete_connection(idx);
-                if let Err(e) = self.config.save() {
+                if idx >= self.config.connections.len() {
                     self.command_panel
-                        .push_error(format!("Failed to save config: {}", e));
+                        .push_error("Cannot delete example profile".to_string());
                 } else {
-                    self.command_panel
-                        .push_message("Profile deleted".to_string());
+                    self.config.delete_connection(idx);
+                    if let Err(e) = self.config.save() {
+                        self.command_panel
+                            .push_error(format!("Failed to save config: {}", e));
+                    } else {
+                        self.command_panel
+                            .push_message("Profile deleted".to_string());
+                    }
+                    self.connection_form.clear();
                 }
-                self.connection_form.clear();
             }
             Action::ConnMgrConnect(idx) => {
-                let profile = self.config.connections.get(idx).cloned();
+                let profile = if idx == self.config.connections.len() {
+                    Some(example_profile())
+                } else {
+                    self.config.connections.get(idx).cloned()
+                };
                 if let Some(profile) = profile {
                     match self.connect_profile(&profile).await {
                         Ok(()) => {
@@ -1605,11 +1804,13 @@ impl App {
                     })
                     .collect();
 
-                // Build and render connections tree
+                // Build and render connections tree (append example profile)
                 let tree_focused = self.focus.is_focused(FocusTarget::ConnectionsTree);
+                let mut conn_profiles = self.config.connections.clone();
+                conn_profiles.push(example_profile());
                 let items = self
                     .connections_tree
-                    .build_tree_items(&self.config.connections, &active_conns);
+                    .build_tree_items(&conn_profiles, &active_conns);
                 self.connections_tree.render_with_items(
                     frame,
                     conn_tree_area,
@@ -1696,4 +1897,23 @@ fn is_auth_error(err: &anyhow::Error) -> bool {
         || msg.contains("rc=49")
         || msg.contains("invalid credentials")
         || msg.contains("password must be provided")
+}
+
+/// Return the built-in example directory profile.
+fn example_profile() -> ConnectionProfile {
+    ConnectionProfile {
+        name: "Example Directory (Contoso)".to_string(),
+        host: "contoso.example".to_string(),
+        port: 389,
+        tls_mode: loom_core::connection::TlsMode::None,
+        bind_dn: None,
+        base_dn: Some("dc=contoso,dc=com".to_string()),
+        credential_method: CredentialMethod::Prompt,
+        password_command: None,
+        page_size: 500,
+        timeout_secs: 30,
+        relax_rules: false,
+        folder: None,
+        offline: true,
+    }
 }

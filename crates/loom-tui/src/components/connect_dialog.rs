@@ -126,11 +126,14 @@ impl ConnectDialog {
         ))));
 
         for p in &self.profiles {
-            let line = Line::from(vec![
+            let mut spans = vec![
                 Span::styled(&p.name, self.theme.header),
                 Span::styled(format!("  {}:{}", p.host, p.port), self.theme.dimmed),
-            ]);
-            items.push(ListItem::new(line));
+            ];
+            if p.offline {
+                spans.push(Span::styled("  [offline]", self.theme.dimmed));
+            }
+            items.push(ListItem::new(Line::from(spans)));
         }
 
         let list =

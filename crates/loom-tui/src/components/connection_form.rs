@@ -232,6 +232,7 @@ impl ConnectionForm {
             page_size,
             timeout_secs: timeout,
             relax_rules: self.relax_rules,
+            offline: false,
         })
     }
 

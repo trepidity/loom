@@ -9,6 +9,7 @@ pub mod export;
 pub mod filter;
 pub mod import;
 pub mod modify;
+pub mod offline;
 pub mod schema;
 pub mod search;
 pub mod server_detect;

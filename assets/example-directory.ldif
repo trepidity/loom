@@ -1,0 +1,1465 @@
+# Example LDAP Directory — Contoso Corporation
+# ~150 entries in an AD-style corporate structure
+# Used by Loom's built-in example/offline mode
+
+# Root domain
+dn: dc=contoso,dc=com
+objectClass: top
+objectClass: domain
+dc: contoso
+description: Contoso Corporation
+
+# Administrator account
+dn: cn=Administrator,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Administrator
+sn: Administrator
+displayName: Directory Administrator
+description: Built-in administrator account
+
+# ============================================================
+# Domain Controllers
+# ============================================================
+dn: ou=Domain Controllers,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Domain Controllers
+description: Domain controller computer accounts
+
+dn: cn=DC01,ou=Domain Controllers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: DC01
+description: Primary domain controller
+l: Seattle
+
+dn: cn=DC02,ou=Domain Controllers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: DC02
+description: Secondary domain controller
+l: Chicago
+
+# ============================================================
+# Corporate OU Structure
+# ============================================================
+dn: ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Corporate
+description: Corporate headquarters departments
+
+# --- Executive ---
+dn: ou=Executive,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Executive
+description: Executive leadership team
+
+dn: cn=Sarah Chen,ou=Executive,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Sarah Chen
+sn: Chen
+givenName: Sarah
+displayName: Sarah Chen
+mail: sarah.chen@contoso.com
+telephoneNumber: +1-206-555-0100
+title: Chief Executive Officer
+department: Executive
+l: Seattle
+
+dn: cn=Michael Torres,ou=Executive,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Michael Torres
+sn: Torres
+givenName: Michael
+displayName: Michael Torres
+mail: michael.torres@contoso.com
+telephoneNumber: +1-206-555-0101
+title: Chief Financial Officer
+department: Executive
+l: Seattle
+
+dn: cn=Aisha Patel,ou=Executive,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Aisha Patel
+sn: Patel
+givenName: Aisha
+displayName: Aisha Patel
+mail: aisha.patel@contoso.com
+telephoneNumber: +1-206-555-0102
+title: Chief Technology Officer
+department: Executive
+l: Seattle
+
+dn: cn=David Kim,ou=Executive,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: David Kim
+sn: Kim
+givenName: David
+displayName: David Kim
+mail: david.kim@contoso.com
+telephoneNumber: +1-206-555-0103
+title: Chief Operations Officer
+department: Executive
+l: Seattle
+
+# --- IT Department ---
+dn: ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: IT
+description: Information Technology
+
+dn: ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Infrastructure
+description: IT Infrastructure team
+
+dn: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: James Wilson
+sn: Wilson
+givenName: James
+displayName: James Wilson
+mail: james.wilson@contoso.com
+telephoneNumber: +1-206-555-0200
+title: Infrastructure Manager
+department: IT - Infrastructure
+l: Seattle
+
+dn: cn=Emily Zhang,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Emily Zhang
+sn: Zhang
+givenName: Emily
+displayName: Emily Zhang
+mail: emily.zhang@contoso.com
+telephoneNumber: +1-206-555-0201
+title: Systems Administrator
+department: IT - Infrastructure
+l: Seattle
+
+dn: cn=Robert Garcia,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Robert Garcia
+sn: Garcia
+givenName: Robert
+displayName: Robert Garcia
+mail: robert.garcia@contoso.com
+telephoneNumber: +1-206-555-0202
+title: Network Engineer
+department: IT - Infrastructure
+l: Seattle
+
+dn: ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Development
+description: Software Development team
+
+dn: cn=Lisa Park,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Lisa Park
+sn: Park
+givenName: Lisa
+displayName: Lisa Park
+mail: lisa.park@contoso.com
+telephoneNumber: +1-206-555-0210
+title: Development Manager
+department: IT - Development
+l: Seattle
+
+dn: cn=Alex Johnson,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Alex Johnson
+sn: Johnson
+givenName: Alex
+displayName: Alex Johnson
+mail: alex.johnson@contoso.com
+telephoneNumber: +1-206-555-0211
+title: Senior Software Engineer
+department: IT - Development
+l: Seattle
+
+dn: cn=Priya Sharma,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Priya Sharma
+sn: Sharma
+givenName: Priya
+displayName: Priya Sharma
+mail: priya.sharma@contoso.com
+telephoneNumber: +1-206-555-0212
+title: Software Engineer
+department: IT - Development
+l: Seattle
+
+dn: cn=Marcus Brown,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Marcus Brown
+sn: Brown
+givenName: Marcus
+displayName: Marcus Brown
+mail: marcus.brown@contoso.com
+telephoneNumber: +1-206-555-0213
+title: Software Engineer
+department: IT - Development
+l: Seattle
+
+dn: cn=Nina Kowalski,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Nina Kowalski
+sn: Kowalski
+givenName: Nina
+displayName: Nina Kowalski
+mail: nina.kowalski@contoso.com
+telephoneNumber: +1-206-555-0214
+title: QA Engineer
+department: IT - Development
+l: Seattle
+
+dn: ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Security
+description: IT Security team
+
+dn: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Omar Hassan
+sn: Hassan
+givenName: Omar
+displayName: Omar Hassan
+mail: omar.hassan@contoso.com
+telephoneNumber: +1-206-555-0220
+title: Security Manager
+department: IT - Security
+l: Seattle
+
+dn: cn=Rachel Lee,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Rachel Lee
+sn: Lee
+givenName: Rachel
+displayName: Rachel Lee
+mail: rachel.lee@contoso.com
+telephoneNumber: +1-206-555-0221
+title: Security Analyst
+department: IT - Security
+l: Seattle
+
+dn: ou=Service Accounts,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Service Accounts
+description: Service and application accounts
+
+dn: cn=svc-backup,ou=Service Accounts,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+cn: svc-backup
+sn: Service Account
+displayName: Backup Service
+description: Automated backup service account
+
+dn: cn=svc-monitoring,ou=Service Accounts,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+cn: svc-monitoring
+sn: Service Account
+displayName: Monitoring Service
+description: Infrastructure monitoring service
+
+dn: cn=svc-deploy,ou=Service Accounts,ou=IT,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+cn: svc-deploy
+sn: Service Account
+displayName: Deployment Service
+description: CI/CD deployment service account
+
+# --- HR ---
+dn: ou=HR,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: HR
+description: Human Resources
+
+dn: cn=Jennifer Adams,ou=HR,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Jennifer Adams
+sn: Adams
+givenName: Jennifer
+displayName: Jennifer Adams
+mail: jennifer.adams@contoso.com
+telephoneNumber: +1-206-555-0300
+title: VP of Human Resources
+department: HR
+l: Seattle
+
+dn: cn=Thomas Wright,ou=HR,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Thomas Wright
+sn: Wright
+givenName: Thomas
+displayName: Thomas Wright
+mail: thomas.wright@contoso.com
+telephoneNumber: +1-206-555-0301
+title: Recruiter
+department: HR
+l: Seattle
+
+dn: cn=Maria Rodriguez,ou=HR,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Maria Rodriguez
+sn: Rodriguez
+givenName: Maria
+displayName: Maria Rodriguez
+mail: maria.rodriguez@contoso.com
+telephoneNumber: +1-206-555-0302
+title: Benefits Coordinator
+department: HR
+l: Seattle
+
+dn: cn=Kevin O'Brien,ou=HR,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Kevin O'Brien
+sn: O'Brien
+givenName: Kevin
+displayName: Kevin O'Brien
+mail: kevin.obrien@contoso.com
+telephoneNumber: +1-206-555-0303
+title: HR Specialist
+department: HR
+l: Seattle
+
+# --- Finance ---
+dn: ou=Finance,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Finance
+description: Finance and Accounting
+
+dn: cn=Amanda Foster,ou=Finance,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Amanda Foster
+sn: Foster
+givenName: Amanda
+displayName: Amanda Foster
+mail: amanda.foster@contoso.com
+telephoneNumber: +1-206-555-0400
+title: Finance Director
+department: Finance
+l: Seattle
+
+dn: cn=Ryan Mitchell,ou=Finance,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Ryan Mitchell
+sn: Mitchell
+givenName: Ryan
+displayName: Ryan Mitchell
+mail: ryan.mitchell@contoso.com
+telephoneNumber: +1-206-555-0401
+title: Senior Accountant
+department: Finance
+l: Seattle
+
+dn: cn=Sophie Turner,ou=Finance,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Sophie Turner
+sn: Turner
+givenName: Sophie
+displayName: Sophie Turner
+mail: sophie.turner@contoso.com
+telephoneNumber: +1-206-555-0402
+title: Financial Analyst
+department: Finance
+l: Seattle
+
+# --- Legal ---
+dn: ou=Legal,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Legal
+description: Legal Department
+
+dn: cn=Daniel Hayes,ou=Legal,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Daniel Hayes
+sn: Hayes
+givenName: Daniel
+displayName: Daniel Hayes
+mail: daniel.hayes@contoso.com
+telephoneNumber: +1-206-555-0500
+title: General Counsel
+department: Legal
+l: Seattle
+
+dn: cn=Victoria Chang,ou=Legal,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Victoria Chang
+sn: Chang
+givenName: Victoria
+displayName: Victoria Chang
+mail: victoria.chang@contoso.com
+telephoneNumber: +1-206-555-0501
+title: Corporate Attorney
+department: Legal
+l: Seattle
+
+dn: cn=Brian Cooper,ou=Legal,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Brian Cooper
+sn: Cooper
+givenName: Brian
+displayName: Brian Cooper
+mail: brian.cooper@contoso.com
+telephoneNumber: +1-206-555-0502
+title: Compliance Officer
+department: Legal
+l: Seattle
+
+# --- Marketing ---
+dn: ou=Marketing,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Marketing
+description: Marketing Department
+
+dn: cn=Jessica Lane,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Jessica Lane
+sn: Lane
+givenName: Jessica
+displayName: Jessica Lane
+mail: jessica.lane@contoso.com
+telephoneNumber: +1-206-555-0600
+title: VP of Marketing
+department: Marketing
+l: Seattle
+
+dn: cn=Chris Bennett,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Chris Bennett
+sn: Bennett
+givenName: Chris
+displayName: Chris Bennett
+mail: chris.bennett@contoso.com
+telephoneNumber: +1-206-555-0601
+title: Marketing Manager
+department: Marketing
+l: Seattle
+
+dn: cn=Olivia Reed,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Olivia Reed
+sn: Reed
+givenName: Olivia
+displayName: Olivia Reed
+mail: olivia.reed@contoso.com
+telephoneNumber: +1-206-555-0602
+title: Content Strategist
+department: Marketing
+l: Seattle
+
+dn: cn=Tyler Morgan,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Tyler Morgan
+sn: Morgan
+givenName: Tyler
+displayName: Tyler Morgan
+mail: tyler.morgan@contoso.com
+telephoneNumber: +1-206-555-0603
+title: Graphic Designer
+department: Marketing
+l: Seattle
+
+# --- Sales ---
+dn: ou=Sales,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Sales
+description: Sales Department
+
+dn: cn=Nathan Brooks,ou=Sales,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Nathan Brooks
+sn: Brooks
+givenName: Nathan
+displayName: Nathan Brooks
+mail: nathan.brooks@contoso.com
+telephoneNumber: +1-206-555-0700
+title: VP of Sales
+department: Sales
+l: Seattle
+
+dn: cn=Samantha Price,ou=Sales,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Samantha Price
+sn: Price
+givenName: Samantha
+displayName: Samantha Price
+mail: samantha.price@contoso.com
+telephoneNumber: +1-206-555-0701
+title: Sales Manager
+department: Sales
+l: Seattle
+
+dn: cn=Derek Stone,ou=Sales,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Derek Stone
+sn: Stone
+givenName: Derek
+displayName: Derek Stone
+mail: derek.stone@contoso.com
+telephoneNumber: +1-206-555-0702
+title: Account Executive
+department: Sales
+l: Seattle
+
+dn: cn=Michelle Davis,ou=Sales,ou=Corporate,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Michelle Davis
+sn: Davis
+givenName: Michelle
+displayName: Michelle Davis
+mail: michelle.davis@contoso.com
+telephoneNumber: +1-206-555-0703
+title: Account Executive
+department: Sales
+l: Seattle
+
+# ============================================================
+# Regional Offices
+# ============================================================
+dn: ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Regional
+description: Regional office branches
+
+# --- North America ---
+dn: ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: North America
+description: North American offices
+
+dn: ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: New York
+description: New York office
+
+dn: cn=Andrew Walsh,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Andrew Walsh
+sn: Walsh
+givenName: Andrew
+displayName: Andrew Walsh
+mail: andrew.walsh@contoso.com
+telephoneNumber: +1-212-555-0100
+title: Regional Director
+department: Sales
+l: New York
+
+dn: cn=Laura Kim,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Laura Kim
+sn: Kim
+givenName: Laura
+displayName: Laura Kim
+mail: laura.kim@contoso.com
+telephoneNumber: +1-212-555-0101
+title: Sales Representative
+department: Sales
+l: New York
+
+dn: cn=Eric Hall,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Eric Hall
+sn: Hall
+givenName: Eric
+displayName: Eric Hall
+mail: eric.hall@contoso.com
+telephoneNumber: +1-212-555-0102
+title: Financial Analyst
+department: Finance
+l: New York
+
+dn: ou=Chicago,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Chicago
+description: Chicago office
+
+dn: cn=Angela Ross,ou=Chicago,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Angela Ross
+sn: Ross
+givenName: Angela
+displayName: Angela Ross
+mail: angela.ross@contoso.com
+telephoneNumber: +1-312-555-0100
+title: Office Manager
+department: Operations
+l: Chicago
+
+dn: cn=Steven Clark,ou=Chicago,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Steven Clark
+sn: Clark
+givenName: Steven
+displayName: Steven Clark
+mail: steven.clark@contoso.com
+telephoneNumber: +1-312-555-0101
+title: Systems Administrator
+department: IT - Infrastructure
+l: Chicago
+
+dn: cn=Diana Cruz,ou=Chicago,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Diana Cruz
+sn: Cruz
+givenName: Diana
+displayName: Diana Cruz
+mail: diana.cruz@contoso.com
+telephoneNumber: +1-312-555-0102
+title: Sales Representative
+department: Sales
+l: Chicago
+
+dn: ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: San Francisco
+description: San Francisco office
+
+dn: cn=Justin Nakamura,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Justin Nakamura
+sn: Nakamura
+givenName: Justin
+displayName: Justin Nakamura
+mail: justin.nakamura@contoso.com
+telephoneNumber: +1-415-555-0100
+title: Engineering Lead
+department: IT - Development
+l: San Francisco
+
+dn: cn=Megan Sullivan,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Megan Sullivan
+sn: Sullivan
+givenName: Megan
+displayName: Megan Sullivan
+mail: megan.sullivan@contoso.com
+telephoneNumber: +1-415-555-0101
+title: Software Engineer
+department: IT - Development
+l: San Francisco
+
+dn: cn=Carlos Reyes,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Carlos Reyes
+sn: Reyes
+givenName: Carlos
+displayName: Carlos Reyes
+mail: carlos.reyes@contoso.com
+telephoneNumber: +1-415-555-0102
+title: DevOps Engineer
+department: IT - Infrastructure
+l: San Francisco
+
+# --- Europe ---
+dn: ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Europe
+description: European offices
+
+dn: ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: London
+description: London office
+
+dn: cn=William Clarke,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: William Clarke
+sn: Clarke
+givenName: William
+displayName: William Clarke
+mail: william.clarke@contoso.com
+telephoneNumber: +44-20-7555-0100
+title: Regional Director EMEA
+department: Sales
+l: London
+
+dn: cn=Charlotte Hughes,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Charlotte Hughes
+sn: Hughes
+givenName: Charlotte
+displayName: Charlotte Hughes
+mail: charlotte.hughes@contoso.com
+telephoneNumber: +44-20-7555-0101
+title: Marketing Manager
+department: Marketing
+l: London
+
+dn: cn=Oliver Thompson,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Oliver Thompson
+sn: Thompson
+givenName: Oliver
+displayName: Oliver Thompson
+mail: oliver.thompson@contoso.com
+telephoneNumber: +44-20-7555-0102
+title: Account Manager
+department: Sales
+l: London
+
+dn: cn=Emma Watson,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Emma Watson
+sn: Watson
+givenName: Emma
+displayName: Emma Watson
+mail: emma.watson@contoso.com
+telephoneNumber: +44-20-7555-0103
+title: HR Coordinator
+department: HR
+l: London
+
+dn: ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Berlin
+description: Berlin office
+
+dn: cn=Hans Mueller,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Hans Mueller
+sn: Mueller
+givenName: Hans
+displayName: Hans Mueller
+mail: hans.mueller@contoso.com
+telephoneNumber: +49-30-555-0100
+title: Office Manager
+department: Operations
+l: Berlin
+
+dn: cn=Katrin Weber,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Katrin Weber
+sn: Weber
+givenName: Katrin
+displayName: Katrin Weber
+mail: katrin.weber@contoso.com
+telephoneNumber: +49-30-555-0101
+title: Software Engineer
+department: IT - Development
+l: Berlin
+
+dn: cn=Lukas Fischer,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Lukas Fischer
+sn: Fischer
+givenName: Lukas
+displayName: Lukas Fischer
+mail: lukas.fischer@contoso.com
+telephoneNumber: +49-30-555-0102
+title: Sales Representative
+department: Sales
+l: Berlin
+
+dn: ou=Paris,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Paris
+description: Paris office
+
+dn: cn=Pierre Dubois,ou=Paris,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Pierre Dubois
+sn: Dubois
+givenName: Pierre
+displayName: Pierre Dubois
+mail: pierre.dubois@contoso.com
+telephoneNumber: +33-1-555-0100
+title: Regional Manager
+department: Sales
+l: Paris
+
+dn: cn=Marie Laurent,ou=Paris,ou=Europe,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Marie Laurent
+sn: Laurent
+givenName: Marie
+displayName: Marie Laurent
+mail: marie.laurent@contoso.com
+telephoneNumber: +33-1-555-0101
+title: Marketing Specialist
+department: Marketing
+l: Paris
+
+# --- Asia Pacific ---
+dn: ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Asia Pacific
+description: Asia Pacific offices
+
+dn: ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Tokyo
+description: Tokyo office
+
+dn: cn=Yuki Tanaka,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Yuki Tanaka
+sn: Tanaka
+givenName: Yuki
+displayName: Yuki Tanaka
+mail: yuki.tanaka@contoso.com
+telephoneNumber: +81-3-555-0100
+title: Regional Director APAC
+department: Sales
+l: Tokyo
+
+dn: cn=Kenji Watanabe,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Kenji Watanabe
+sn: Watanabe
+givenName: Kenji
+displayName: Kenji Watanabe
+mail: kenji.watanabe@contoso.com
+telephoneNumber: +81-3-555-0101
+title: Software Engineer
+department: IT - Development
+l: Tokyo
+
+dn: cn=Sakura Yamamoto,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Sakura Yamamoto
+sn: Yamamoto
+givenName: Sakura
+displayName: Sakura Yamamoto
+mail: sakura.yamamoto@contoso.com
+telephoneNumber: +81-3-555-0102
+title: Account Manager
+department: Sales
+l: Tokyo
+
+dn: ou=Sydney,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Sydney
+description: Sydney office
+
+dn: cn=Jack Murray,ou=Sydney,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Jack Murray
+sn: Murray
+givenName: Jack
+displayName: Jack Murray
+mail: jack.murray@contoso.com
+telephoneNumber: +61-2-555-0100
+title: Office Manager
+department: Operations
+l: Sydney
+
+dn: cn=Sophie Anderson,ou=Sydney,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Sophie Anderson
+sn: Anderson
+givenName: Sophie
+displayName: Sophie Anderson
+mail: sophie.anderson@contoso.com
+telephoneNumber: +61-2-555-0101
+title: Sales Representative
+department: Sales
+l: Sydney
+
+dn: ou=Singapore,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Singapore
+description: Singapore office
+
+dn: cn=Wei Lin,ou=Singapore,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Wei Lin
+sn: Lin
+givenName: Wei
+displayName: Wei Lin
+mail: wei.lin@contoso.com
+telephoneNumber: +65-555-0100
+title: Regional Manager
+department: Sales
+l: Singapore
+
+dn: cn=Priya Nair,ou=Singapore,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Priya Nair
+sn: Nair
+givenName: Priya
+displayName: Priya Nair
+mail: priya.nair@contoso.com
+telephoneNumber: +65-555-0101
+title: Systems Administrator
+department: IT - Infrastructure
+l: Singapore
+
+dn: ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Mumbai
+description: Mumbai office
+
+dn: cn=Raj Kapoor,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Raj Kapoor
+sn: Kapoor
+givenName: Raj
+displayName: Raj Kapoor
+mail: raj.kapoor@contoso.com
+telephoneNumber: +91-22-555-0100
+title: Development Lead
+department: IT - Development
+l: Mumbai
+
+dn: cn=Ananya Desai,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Ananya Desai
+sn: Desai
+givenName: Ananya
+displayName: Ananya Desai
+mail: ananya.desai@contoso.com
+telephoneNumber: +91-22-555-0101
+title: Software Engineer
+department: IT - Development
+l: Mumbai
+
+dn: cn=Vikram Mehta,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Vikram Mehta
+sn: Mehta
+givenName: Vikram
+displayName: Vikram Mehta
+mail: vikram.mehta@contoso.com
+telephoneNumber: +91-22-555-0102
+title: QA Engineer
+department: IT - Development
+l: Mumbai
+
+# ============================================================
+# Groups
+# ============================================================
+dn: ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+description: Security and distribution groups
+
+dn: cn=Domain Admins,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Domain Admins
+description: Domain administrators with full directory access
+member: cn=Administrator,dc=contoso,dc=com
+member: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=IT Staff,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: IT Staff
+description: All IT department members
+member: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Emily Zhang,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Robert Garcia,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Lisa Park,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Alex Johnson,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Priya Sharma,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Marcus Brown,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Nina Kowalski,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Rachel Lee,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=Developers,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Developers
+description: Software development team
+member: cn=Lisa Park,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Alex Johnson,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Priya Sharma,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Marcus Brown,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Nina Kowalski,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Justin Nakamura,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=Megan Sullivan,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=Katrin Weber,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Kenji Watanabe,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Raj Kapoor,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Ananya Desai,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+
+dn: cn=VPN Users,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: VPN Users
+description: Users authorized for VPN remote access
+member: cn=Sarah Chen,ou=Executive,ou=Corporate,dc=contoso,dc=com
+member: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Lisa Park,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Alex Johnson,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=HR Team,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: HR Team
+description: Human Resources department
+member: cn=Jennifer Adams,ou=HR,ou=Corporate,dc=contoso,dc=com
+member: cn=Thomas Wright,ou=HR,ou=Corporate,dc=contoso,dc=com
+member: cn=Maria Rodriguez,ou=HR,ou=Corporate,dc=contoso,dc=com
+member: cn=Kevin O'Brien,ou=HR,ou=Corporate,dc=contoso,dc=com
+member: cn=Emma Watson,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+
+dn: cn=Finance Team,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Finance Team
+description: Finance and Accounting department
+member: cn=Michael Torres,ou=Executive,ou=Corporate,dc=contoso,dc=com
+member: cn=Amanda Foster,ou=Finance,ou=Corporate,dc=contoso,dc=com
+member: cn=Ryan Mitchell,ou=Finance,ou=Corporate,dc=contoso,dc=com
+member: cn=Sophie Turner,ou=Finance,ou=Corporate,dc=contoso,dc=com
+member: cn=Eric Hall,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+
+dn: cn=Sales Team,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Sales Team
+description: Global sales organization
+member: cn=Nathan Brooks,ou=Sales,ou=Corporate,dc=contoso,dc=com
+member: cn=Samantha Price,ou=Sales,ou=Corporate,dc=contoso,dc=com
+member: cn=Derek Stone,ou=Sales,ou=Corporate,dc=contoso,dc=com
+member: cn=Michelle Davis,ou=Sales,ou=Corporate,dc=contoso,dc=com
+member: cn=Andrew Walsh,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=Laura Kim,ou=New York,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=Diana Cruz,ou=Chicago,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=William Clarke,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Oliver Thompson,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Lukas Fischer,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Pierre Dubois,ou=Paris,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Yuki Tanaka,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Sakura Yamamoto,ou=Tokyo,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Sophie Anderson,ou=Sydney,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Wei Lin,ou=Singapore,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+
+dn: cn=Marketing Team,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Marketing Team
+description: Marketing department
+member: cn=Jessica Lane,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+member: cn=Chris Bennett,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+member: cn=Olivia Reed,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+member: cn=Tyler Morgan,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+member: cn=Charlotte Hughes,ou=London,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Marie Laurent,ou=Paris,ou=Europe,ou=Regional,dc=contoso,dc=com
+
+dn: cn=Legal Team,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Legal Team
+description: Legal department
+member: cn=Daniel Hayes,ou=Legal,ou=Corporate,dc=contoso,dc=com
+member: cn=Victoria Chang,ou=Legal,ou=Corporate,dc=contoso,dc=com
+member: cn=Brian Cooper,ou=Legal,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=Executive Committee,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Executive Committee
+description: Executive leadership committee
+member: cn=Sarah Chen,ou=Executive,ou=Corporate,dc=contoso,dc=com
+member: cn=Michael Torres,ou=Executive,ou=Corporate,dc=contoso,dc=com
+member: cn=Aisha Patel,ou=Executive,ou=Corporate,dc=contoso,dc=com
+member: cn=David Kim,ou=Executive,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=All Managers,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: All Managers
+description: All people managers across the organization
+member: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Lisa Park,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Jennifer Adams,ou=HR,ou=Corporate,dc=contoso,dc=com
+member: cn=Amanda Foster,ou=Finance,ou=Corporate,dc=contoso,dc=com
+member: cn=Jessica Lane,ou=Marketing,ou=Corporate,dc=contoso,dc=com
+member: cn=Nathan Brooks,ou=Sales,ou=Corporate,dc=contoso,dc=com
+member: cn=Daniel Hayes,ou=Legal,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=Security Operations,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Security Operations
+description: Security team and incident responders
+member: cn=Omar Hassan,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Rachel Lee,ou=Security,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=James Wilson,ou=Infrastructure,ou=IT,ou=Corporate,dc=contoso,dc=com
+
+dn: cn=Remote Workers,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Remote Workers
+description: Employees approved for permanent remote work
+member: cn=Alex Johnson,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Priya Sharma,ou=Development,ou=IT,ou=Corporate,dc=contoso,dc=com
+member: cn=Carlos Reyes,ou=San Francisco,ou=North America,ou=Regional,dc=contoso,dc=com
+member: cn=Katrin Weber,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+member: cn=Ananya Desai,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+
+dn: cn=Onboarding,ou=Groups,dc=contoso,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: Onboarding
+description: New employees in onboarding process
+member: cn=Vikram Mehta,ou=Mumbai,ou=Asia Pacific,ou=Regional,dc=contoso,dc=com
+member: cn=Lukas Fischer,ou=Berlin,ou=Europe,ou=Regional,dc=contoso,dc=com
+
+# ============================================================
+# Servers
+# ============================================================
+dn: ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Server computer accounts
+
+dn: cn=WEB01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: WEB01
+description: Primary web server
+l: Seattle
+
+dn: cn=WEB02,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: WEB02
+description: Secondary web server
+l: Seattle
+
+dn: cn=APP01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: APP01
+description: Application server
+l: Seattle
+
+dn: cn=DB01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: DB01
+description: Primary database server
+l: Seattle
+
+dn: cn=DB02,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: DB02
+description: Replica database server
+l: Chicago
+
+dn: cn=MAIL01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: MAIL01
+description: Mail server
+l: Seattle
+
+dn: cn=FILE01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: FILE01
+description: File server
+l: Seattle
+
+dn: cn=BACKUP01,ou=Servers,dc=contoso,dc=com
+objectClass: top
+objectClass: device
+cn: BACKUP01
+description: Backup server
+l: Chicago
+
+# ============================================================
+# Contacts (external)
+# ============================================================
+dn: ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Contacts
+description: External business contacts
+
+dn: cn=Patricia Miller,ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Patricia Miller
+sn: Miller
+givenName: Patricia
+displayName: Patricia Miller
+mail: patricia.miller@lawfirm.example
+telephoneNumber: +1-206-555-9000
+title: External Counsel
+description: Outside legal counsel at Miller & Associates
+
+dn: cn=George Yamada,ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: George Yamada
+sn: Yamada
+givenName: George
+displayName: George Yamada
+mail: george.yamada@auditor.example
+telephoneNumber: +1-206-555-9001
+title: External Auditor
+description: Annual audit engagement partner
+
+dn: cn=Fatima Al-Rashid,ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Fatima Al-Rashid
+sn: Al-Rashid
+givenName: Fatima
+displayName: Fatima Al-Rashid
+mail: fatima.alrashid@vendor.example
+telephoneNumber: +44-20-7555-9000
+title: Account Manager
+description: Primary vendor contact at CloudTech Solutions
+
+dn: cn=Roberto Sanchez,ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Roberto Sanchez
+sn: Sanchez
+givenName: Roberto
+displayName: Roberto Sanchez
+mail: roberto.sanchez@partner.example
+telephoneNumber: +34-91-555-9000
+title: Partnership Director
+description: Strategic partnership contact at GlobalTech
+
+dn: cn=Ingrid Johansson,ou=Contacts,dc=contoso,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Ingrid Johansson
+sn: Johansson
+givenName: Ingrid
+displayName: Ingrid Johansson
+mail: ingrid.johansson@recruiter.example
+telephoneNumber: +46-8-555-9000
+title: Executive Recruiter
+description: Retained executive search consultant

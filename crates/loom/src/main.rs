@@ -66,6 +66,7 @@ async fn main() -> Result<()> {
             timeout_secs: 30,
             relax_rules: false,
             folder: None,
+            offline: false,
         };
         config.connections.insert(0, profile);
     }

@@ -174,6 +174,7 @@ impl NewConnectionDialog {
             timeout_secs: 30,
             relax_rules: false,
             folder: None,
+            offline: false,
         };
 
         let password = self.password.clone();

@@ -28,6 +28,12 @@ pub struct ConnectionProfile {
     pub relax_rules: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub offline: bool,
+}
+
+fn is_false(v: &bool) -> bool {
+    !v
 }
 
 fn default_port() -> u16 {
@@ -302,6 +308,7 @@ timeout_secs = 60
             timeout_secs: 30,
             relax_rules: false,
             folder: None,
+            offline: false,
         };
 
         let settings = profile.to_connection_settings();
