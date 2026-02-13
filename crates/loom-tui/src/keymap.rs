@@ -239,10 +239,7 @@ impl Keymap {
 
     /// Get the display string for a named action (for status bar hints).
     pub fn hint(&self, action: &str) -> &str {
-        self.hints
-            .get(action)
-            .map(|s| s.as_str())
-            .unwrap_or("???")
+        self.hints.get(action).map(|s| s.as_str()).unwrap_or("???")
     }
 }
 
@@ -414,10 +411,7 @@ mod tests {
 
     #[test]
     fn test_display_key_shift_backtab() {
-        assert_eq!(
-            display_key(KeyModifiers::SHIFT, KeyCode::BackTab),
-            "S-Tab"
-        );
+        assert_eq!(display_key(KeyModifiers::SHIFT, KeyCode::BackTab), "S-Tab");
     }
 
     #[test]

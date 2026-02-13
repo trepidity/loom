@@ -1,4 +1,5 @@
 pub mod attribute_editor;
+pub mod attribute_picker;
 pub mod bulk_update_dialog;
 pub mod command_panel;
 pub mod confirm_dialog;

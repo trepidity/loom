@@ -541,7 +541,9 @@ impl ConnectionForm {
         let hints_text = match self.mode {
             FormMode::View => "e:Edit  c:Connect  d:Delete",
             FormMode::Edit => "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
-            FormMode::Create => "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
+            FormMode::Create => {
+                "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel"
+            }
         };
         let hints = Paragraph::new(Line::from(Span::styled(hints_text, self.theme.dimmed)));
         frame.render_widget(hints, layout[12]);

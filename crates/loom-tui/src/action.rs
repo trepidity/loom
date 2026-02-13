@@ -71,6 +71,8 @@ pub enum Action {
     // Attribute Editing
     EditAttribute(String, String, String), // dn, attr_name, current_value
     AddAttribute(String, String),          // dn, attr_name
+    ShowAddAttribute(String),              // dn — opens attribute picker
+    DeleteAttributeValue(String, String, String), // dn, attr, value
     SaveAttribute(EditResult),
     AttributeSaved(String), // dn that was updated
     DnSearchRequest {

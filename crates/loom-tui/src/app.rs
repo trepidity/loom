@@ -14,7 +14,8 @@ use loom_core::tree::{DirectoryTree, TreeNode};
 
 use crate::action::{Action, ActiveLayout, ConnectionId, FocusTarget};
 use crate::component::Component;
-use crate::components::attribute_editor::{AttributeEditor, EditOp};
+use crate::components::attribute_editor::{AttributeEditor, EditOp, EditResult};
+use crate::components::attribute_picker::AttributePicker;
 use crate::components::bulk_update_dialog::BulkUpdateDialog;
 use crate::components::command_panel::CommandPanel;
 use crate::components::confirm_dialog::ConfirmDialog;
@@ -89,6 +90,7 @@ pub struct App {
     credential_prompt: CredentialPromptDialog,
     search_dialog: SearchDialog,
     attribute_editor: AttributeEditor,
+    attribute_picker: AttributePicker,
     export_dialog: ExportDialog,
     bulk_update_dialog: BulkUpdateDialog,
     create_entry_dialog: CreateEntryDialog,
@@ -143,6 +145,7 @@ impl App {
             credential_prompt: CredentialPromptDialog::new(theme.clone()),
             search_dialog: SearchDialog::new(theme.clone()),
             attribute_editor: AttributeEditor::new(theme.clone()),
+            attribute_picker: AttributePicker::new(theme.clone()),
             export_dialog: ExportDialog::new(theme.clone()),
             bulk_update_dialog: BulkUpdateDialog::new(theme.clone()),
             create_entry_dialog: CreateEntryDialog::new(theme.clone()),
@@ -281,6 +284,9 @@ impl App {
         // Load root children
         self.spawn_load_children(conn_id, base_dn);
 
+        // Auto-load schema so attribute picker is ready
+        self.spawn_load_schema(conn_id);
+
         Ok(())
     }
 
@@ -397,11 +403,7 @@ impl App {
         }
     }
 
-    fn spawn_save_attribute(
-        &self,
-        conn_id: ConnectionId,
-        result: crate::components::attribute_editor::EditResult,
-    ) {
+    fn spawn_save_attribute(&self, conn_id: ConnectionId, result: EditResult) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
             let connection = tab.connection.clone();
@@ -683,6 +685,7 @@ impl App {
             || self.credential_prompt.visible
             || self.search_dialog.visible
             || self.attribute_editor.visible
+            || self.attribute_picker.visible
             || self.export_dialog.visible
             || self.bulk_update_dialog.visible
             || self.create_entry_dialog.visible
@@ -708,6 +711,8 @@ impl App {
                         // Popups intercept keys first
                         let action = if self.attribute_editor.visible {
                             self.attribute_editor.handle_key_event(key)
+                        } else if self.attribute_picker.visible {
+                            self.attribute_picker.handle_key_event(key)
                         } else if self.confirm_dialog.visible {
                             self.confirm_dialog.handle_key_event(key)
                         } else if self.connect_dialog.visible {
@@ -1161,6 +1166,60 @@ impl App {
                 self.attribute_editor
                     .add_value_with_options(dn, attr, is_dn, multi_valued);
             }
+            Action::ShowAddAttribute(dn) => {
+                // Build candidate list from schema
+                let candidates = if let Some(tab) = self.active_tab() {
+                    if let Some(ref schema) = tab.schema {
+                        let present: std::collections::HashSet<String> = self
+                            .detail_panel
+                            .entry
+                            .as_ref()
+                            .map(|e| e.attributes.keys().map(|k| k.to_lowercase()).collect())
+                            .unwrap_or_default();
+
+                        let ocs: Vec<&str> = self
+                            .detail_panel
+                            .entry
+                            .as_ref()
+                            .map(|e| e.object_classes())
+                            .unwrap_or_default();
+
+                        let attr_names = if !ocs.is_empty() {
+                            schema.allowed_attributes(&ocs)
+                        } else {
+                            schema.all_user_attributes()
+                        };
+
+                        attr_names
+                            .into_iter()
+                            .filter(|name| !present.contains(&name.to_lowercase()))
+                            .map(|name| {
+                                let syntax_label = schema
+                                    .get_attribute_type(&name)
+                                    .map(|at| format!("{:?}", at.syntax))
+                                    .unwrap_or_default();
+                                (name, syntax_label)
+                            })
+                            .collect()
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                };
+
+                self.attribute_picker.show(dn, candidates);
+            }
+            Action::DeleteAttributeValue(dn, attr, value) => {
+                let result = EditResult {
+                    dn,
+                    op: EditOp::Delete { attr, value },
+                    new_value: String::new(),
+                };
+                if let Some(id) = self.active_tab_id {
+                    self.spawn_save_attribute(id, result);
+                }
+            }
             Action::SaveAttribute(result) => {
                 if let Some(id) = self.active_tab_id {
                     self.spawn_save_attribute(id, result);
@@ -1325,6 +1384,8 @@ impl App {
                     Some((_, id)) => {
                         self.command_panel
                             .push_message("Loading schema...".to_string());
+                        // Mark viewer as pending so SchemaLoaded knows to show it
+                        self.schema_viewer.visible = true;
                         self.spawn_load_schema(id);
                     }
                     None => {
@@ -1334,6 +1395,8 @@ impl App {
                 }
             }
             Action::SchemaLoaded(conn_id, schema) => {
+                // Only show schema viewer if it was already visible (user triggered ShowSchemaViewer)
+                let viewer_was_open = self.schema_viewer.visible;
                 if let Some(tab) = self.tabs.iter_mut().find(|t| t.id == conn_id) {
                     self.command_panel.push_message(format!(
                         "Schema loaded: {} attribute types, {} object classes",
@@ -1341,7 +1404,9 @@ impl App {
                         schema.object_classes.len()
                     ));
                     tab.schema = Some(*schema.clone());
-                    self.schema_viewer.show(&schema);
+                    if viewer_was_open {
+                        self.schema_viewer.show(&schema);
+                    }
                 }
             }
 
@@ -1361,6 +1426,7 @@ impl App {
                 self.credential_prompt.hide();
                 self.search_dialog.hide();
                 self.attribute_editor.hide();
+                self.attribute_picker.hide();
                 self.export_dialog.hide();
                 self.bulk_update_dialog.hide();
                 self.create_entry_dialog.hide();
@@ -1510,8 +1576,8 @@ impl App {
             ActiveLayout::Connections => {
                 // Vertical: panels | status log
                 let conn_vertical = Layout::vertical([
-                    Constraint::Min(3),       // panels
-                    Constraint::Length(6),     // status log
+                    Constraint::Min(3),    // panels
+                    Constraint::Length(6), // status log
                 ])
                 .split(content_area);
 
@@ -1559,7 +1625,8 @@ impl App {
                 );
 
                 // Render status log
-                self.command_panel.render_status(frame, conn_status_area, "Status");
+                self.command_panel
+                    .render_status(frame, conn_status_area, "Status");
             }
         }
 
@@ -1584,6 +1651,9 @@ impl App {
         }
         if self.attribute_editor.visible {
             self.attribute_editor.render(frame, full);
+        }
+        if self.attribute_picker.visible {
+            self.attribute_picker.render(frame, full);
         }
         if self.export_dialog.visible {
             self.export_dialog.render(frame, full);
