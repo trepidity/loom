@@ -425,7 +425,13 @@ impl App {
         }
     }
 
-    fn spawn_export(&self, conn_id: ConnectionId, path: String) {
+    fn spawn_export(
+        &self,
+        conn_id: ConnectionId,
+        path: String,
+        filter: String,
+        attributes: Vec<String>,
+    ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
             let connection = tab.connection.clone();
@@ -434,9 +440,9 @@ impl App {
 
             tokio::spawn(async move {
                 let mut conn = connection.lock().await;
-                // Search for all entries under the base
+                let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
                 match conn
-                    .search_subtree(&base_dn, "(objectClass=*)", vec!["*"])
+                    .search_subtree(&base_dn, &filter, attr_refs)
                     .await
                 {
                     Ok(entries) => {
@@ -857,11 +863,15 @@ impl App {
                         .push_error("No active connection".to_string());
                 }
             }
-            Action::ExportExecute(path) => {
+            Action::ExportExecute {
+                path,
+                filter,
+                attributes,
+            } => {
                 if let Some(id) = self.active_tab_id {
                     self.command_panel
-                        .push_message(format!("Exporting to {}...", path));
-                    self.spawn_export(id, path);
+                        .push_message(format!("Exporting to {} (filter: {})...", path, filter));
+                    self.spawn_export(id, path, filter, attributes);
                 }
             }
             Action::ExportComplete(msg) => {

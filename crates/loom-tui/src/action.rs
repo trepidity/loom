@@ -69,7 +69,11 @@ pub enum Action {
 
     // Export / Import
     ShowExportDialog,
-    ExportExecute(String),  // file path
+    ExportExecute {
+        path: String,
+        filter: String,
+        attributes: Vec<String>,
+    },
     ExportComplete(String), // success message
 
     // Bulk Update
