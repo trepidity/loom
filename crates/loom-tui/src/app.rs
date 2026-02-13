@@ -937,7 +937,8 @@ impl App {
                 }
             }
             Action::EntryLoaded(_conn_id, entry) => {
-                self.detail_panel.set_entry(entry);
+                let schema = self.active_tab().and_then(|t| t.schema.clone());
+                self.detail_panel.set_entry(entry, schema.as_ref());
             }
             Action::EntryRefresh => {
                 if let (Some(id), Some(ref entry)) = (self.active_tab_id, &self.detail_panel.entry)

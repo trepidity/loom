@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 
 use crate::action::Action;
@@ -116,10 +116,13 @@ impl Component for CommandPanel {
             self.theme.border
         };
 
-        let block = Block::default()
+        let mut block = Block::default()
             .title(" Command ")
             .borders(Borders::ALL)
             .border_style(border_style);
+        if focused {
+            block = block.border_type(BorderType::Double);
+        }
 
         let inner = block.inner(area);
         frame.render_widget(block, area);

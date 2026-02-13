@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::Modifier;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -115,10 +115,13 @@ impl TreePanel {
             self.theme.border
         };
 
-        let block = Block::default()
+        let mut block = Block::default()
             .title(format!(" {} ", title))
             .borders(Borders::ALL)
             .border_style(border_style);
+        if focused {
+            block = block.border_type(BorderType::Double);
+        }
 
         let tree_widget = Tree::new(items)
             .expect("tree widget")
@@ -137,10 +140,13 @@ impl TreePanel {
             self.theme.border
         };
 
-        let block = Block::default()
+        let mut block = Block::default()
             .title(" Tree ")
             .borders(Borders::ALL)
             .border_style(border_style);
+        if focused {
+            block = block.border_type(BorderType::Double);
+        }
 
         let empty = Paragraph::new("No connection")
             .style(self.theme.dimmed)

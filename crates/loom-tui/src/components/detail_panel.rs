@@ -2,13 +2,21 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Row, Table, TableState};
+use ratatui::widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState};
 use ratatui::Frame;
 
 use crate::action::Action;
 use crate::component::Component;
 use crate::theme::Theme;
 use loom_core::entry::LdapEntry;
+use loom_core::schema::SchemaCache;
+
+/// Whether an attribute is user-editable or operational/system.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AttrKind {
+    Normal,
+    Operational,
+}
 
 /// Flattened attribute row for table display.
 struct AttrRow {
@@ -16,6 +24,7 @@ struct AttrRow {
     value: String,
     /// True for first value of an attribute (displays the attribute name).
     is_first: bool,
+    kind: AttrKind,
 }
 
 /// The top-right panel: entry detail viewer.
@@ -38,8 +47,8 @@ impl DetailPanel {
         }
     }
 
-    pub fn set_entry(&mut self, entry: LdapEntry) {
-        self.rows = build_rows(&entry);
+    pub fn set_entry(&mut self, entry: LdapEntry, schema: Option<&SchemaCache>) {
+        self.rows = build_rows(&entry, schema);
         self.table_state
             .select(if self.rows.is_empty() { None } else { Some(0) });
         self.entry = Some(entry);
@@ -100,10 +109,13 @@ impl Component for DetailPanel {
             self.theme.border
         };
 
-        let block = Block::default()
+        let mut block = Block::default()
             .title(" Details ")
             .borders(Borders::ALL)
             .border_style(border_style);
+        if focused {
+            block = block.border_type(BorderType::Double);
+        }
 
         if let Some(ref entry) = self.entry {
             // Build header with DN
@@ -117,10 +129,18 @@ impl Component for DetailPanel {
                 .rows
                 .iter()
                 .map(|r| {
+                    let attr_style = match r.kind {
+                        AttrKind::Operational => self.theme.attr_operational,
+                        AttrKind::Normal => self.theme.header,
+                    };
+                    let value_style = match r.kind {
+                        AttrKind::Operational => self.theme.attr_operational,
+                        AttrKind::Normal => self.theme.normal,
+                    };
                     let attr_display = if r.is_first { r.attr_name.as_str() } else { "" };
                     Row::new(vec![
-                        Cell::from(Span::styled(attr_display, self.theme.header)),
-                        Cell::from(Span::styled(&r.value, self.theme.normal)),
+                        Cell::from(Span::styled(attr_display, attr_style)),
+                        Cell::from(Span::styled(&r.value, value_style)),
                     ])
                 })
                 .collect();
@@ -169,14 +189,25 @@ impl Component for DetailPanel {
     }
 }
 
-fn build_rows(entry: &LdapEntry) -> Vec<AttrRow> {
+fn build_rows(entry: &LdapEntry, schema: Option<&SchemaCache>) -> Vec<AttrRow> {
     let mut rows = Vec::new();
     for (name, values) in &entry.attributes {
+        let kind = schema
+            .and_then(|s| s.get_attribute_type(name))
+            .map(|at| {
+                if at.no_user_modification {
+                    AttrKind::Operational
+                } else {
+                    AttrKind::Normal
+                }
+            })
+            .unwrap_or(AttrKind::Normal);
         for (i, val) in values.iter().enumerate() {
             rows.push(AttrRow {
                 attr_name: name.clone(),
                 value: val.clone(),
                 is_first: i == 0,
+                kind,
             });
         }
     }

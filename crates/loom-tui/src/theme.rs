@@ -23,36 +23,46 @@ pub struct Theme {
     pub popup_border: Style,
     pub popup_title: Style,
     pub command_prompt: Style,
+    pub attr_operational: Style,
 }
 
 impl Theme {
-    /// The default dark theme.
+    /// The default dark theme (Matrix green-on-black aesthetic).
     pub fn dark() -> Self {
         Self {
-            border: Style::default().fg(Color::Gray),
-            border_focused: Style::default().fg(Color::Cyan),
-            selected: Style::default().fg(Color::Black).bg(Color::Cyan),
-            header: Style::default()
-                .fg(Color::Yellow)
+            border: Style::default().fg(Color::Rgb(0, 100, 0)),
+            border_focused: Style::default()
+                .fg(Color::Rgb(0, 255, 0))
                 .add_modifier(Modifier::BOLD),
-            normal: Style::default().fg(Color::White),
-            dimmed: Style::default().fg(Color::DarkGray),
+            selected: Style::default()
+                .fg(Color::Black)
+                .bg(Color::Rgb(0, 200, 0)),
+            header: Style::default()
+                .fg(Color::Rgb(0, 255, 0))
+                .add_modifier(Modifier::BOLD),
+            normal: Style::default().fg(Color::Rgb(0, 190, 0)),
+            dimmed: Style::default().fg(Color::Rgb(0, 80, 0)),
             error: Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
             warning: Style::default().fg(Color::Yellow),
-            success: Style::default().fg(Color::Green),
-            status_bar: Style::default().fg(Color::White).bg(Color::DarkGray),
+            success: Style::default().fg(Color::Rgb(0, 255, 0)),
+            status_bar: Style::default()
+                .fg(Color::Rgb(0, 190, 0))
+                .bg(Color::Rgb(0, 30, 0)),
             tab_active: Style::default()
-                .fg(Color::Cyan)
+                .fg(Color::Rgb(0, 255, 0))
                 .add_modifier(Modifier::BOLD),
-            tab_inactive: Style::default().fg(Color::Gray),
-            tree_node: Style::default().fg(Color::White),
-            tree_node_expanded: Style::default().fg(Color::Green),
-            tree_node_selected: Style::default().fg(Color::Black).bg(Color::Cyan),
-            popup_border: Style::default().fg(Color::Yellow),
+            tab_inactive: Style::default().fg(Color::Rgb(0, 100, 0)),
+            tree_node: Style::default().fg(Color::Rgb(0, 190, 0)),
+            tree_node_expanded: Style::default().fg(Color::Rgb(0, 255, 0)),
+            tree_node_selected: Style::default()
+                .fg(Color::Black)
+                .bg(Color::Rgb(0, 200, 0)),
+            popup_border: Style::default().fg(Color::Rgb(0, 255, 0)),
             popup_title: Style::default()
-                .fg(Color::Yellow)
+                .fg(Color::Rgb(0, 255, 0))
                 .add_modifier(Modifier::BOLD),
-            command_prompt: Style::default().fg(Color::Cyan),
+            command_prompt: Style::default().fg(Color::Rgb(0, 255, 0)),
+            attr_operational: Style::default().fg(Color::Rgb(0, 120, 0)),
         }
     }
 
@@ -83,6 +93,7 @@ impl Theme {
                 .fg(Color::Blue)
                 .add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(Color::Blue),
+            attr_operational: Style::default().fg(Color::Gray),
         }
     }
 
@@ -118,6 +129,7 @@ impl Theme {
             popup_border: Style::default().fg(yellow),
             popup_title: Style::default().fg(yellow).add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(cyan),
+            attr_operational: Style::default().fg(base01),
         }
     }
 
@@ -155,6 +167,7 @@ impl Theme {
                 .fg(aurora_yellow)
                 .add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(frost2),
+            attr_operational: Style::default().fg(frost0),
         }
     }
 
@@ -242,6 +255,8 @@ struct ThemeColors {
     popup_title: StyleDef,
     #[serde(default)]
     command_prompt: StyleDef,
+    #[serde(default)]
+    attr_operational: StyleDef,
 }
 
 fn default_white() -> String {
@@ -309,6 +324,7 @@ impl ThemeDefinition {
             popup_border: c.popup_border.to_style(),
             popup_title: c.popup_title.to_style(),
             command_prompt: c.command_prompt.to_style(),
+            attr_operational: c.attr_operational.to_style(),
         }
     }
 }
