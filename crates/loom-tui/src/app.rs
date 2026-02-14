@@ -129,9 +129,9 @@ pub struct App {
     conn_form_area: Option<Rect>,
 
     // Resizable panel splits (percentages, 10..=90)
-    tree_split_pct: u16,          // tree panel width as % of content area
-    detail_split_pct: u16,        // detail panel height as % of right area
-    conn_tree_split_pct: u16,     // connections tree width as % of content area
+    tree_split_pct: u16,      // tree panel width as % of content area
+    detail_split_pct: u16,    // detail panel height as % of right area
+    conn_tree_split_pct: u16, // connections tree width as % of content area
     drag_target: Option<DragTarget>,
 
     // Async communication
@@ -1088,9 +1088,7 @@ impl App {
                 // Vertical divider: right edge of tree panel
                 if let Some(tree) = self.tree_area {
                     let divider_col = tree.x + tree.width;
-                    if col.abs_diff(divider_col) <= 1
-                        && row >= tree.y
-                        && row < tree.y + tree.height
+                    if col.abs_diff(divider_col) <= 1 && row >= tree.y && row < tree.y + tree.height
                     {
                         return Some(DragTarget::Tree);
                     }
@@ -1110,10 +1108,7 @@ impl App {
                 // Vertical divider: right edge of connections tree
                 if let Some(ct) = self.conn_tree_area {
                     let divider_col = ct.x + ct.width;
-                    if col.abs_diff(divider_col) <= 1
-                        && row >= ct.y
-                        && row < ct.y + ct.height
-                    {
+                    if col.abs_diff(divider_col) <= 1 && row >= ct.y && row < ct.y + ct.height {
                         return Some(DragTarget::ConnTree);
                     }
                 }
@@ -1849,18 +1844,22 @@ impl App {
 
                 // Horizontal: tree | right panels (draggable split)
                 let tp = self.tree_split_pct;
-                let horizontal =
-                    Layout::horizontal([Constraint::Percentage(tp), Constraint::Percentage(100 - tp)])
-                        .split(content_area);
+                let horizontal = Layout::horizontal([
+                    Constraint::Percentage(tp),
+                    Constraint::Percentage(100 - tp),
+                ])
+                .split(content_area);
 
                 let tree_area = horizontal[0];
                 let right_area = horizontal[1];
 
                 // Right side: detail | command (draggable split)
                 let dp = self.detail_split_pct;
-                let right_vertical =
-                    Layout::vertical([Constraint::Percentage(dp), Constraint::Percentage(100 - dp)])
-                        .split(right_area);
+                let right_vertical = Layout::vertical([
+                    Constraint::Percentage(dp),
+                    Constraint::Percentage(100 - dp),
+                ])
+                .split(right_area);
 
                 let detail_area = right_vertical[0];
                 let command_area = right_vertical[1];
@@ -1910,9 +1909,11 @@ impl App {
 
                 // Horizontal: connections tree | connection form (draggable split)
                 let cp = self.conn_tree_split_pct;
-                let horizontal =
-                    Layout::horizontal([Constraint::Percentage(cp), Constraint::Percentage(100 - cp)])
-                        .split(panels_area);
+                let horizontal = Layout::horizontal([
+                    Constraint::Percentage(cp),
+                    Constraint::Percentage(100 - cp),
+                ])
+                .split(panels_area);
 
                 let conn_tree_area = horizontal[0];
                 let conn_form_area = horizontal[1];
