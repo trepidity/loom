@@ -72,8 +72,6 @@ pub struct KeybindingConfig {
     pub focus_next: String,
     pub focus_prev: String,
     pub show_connect_dialog: String,
-    pub next_tab: String,
-    pub prev_tab: String,
     pub search: String,
     pub show_export_dialog: String,
     pub show_bulk_update: String,
@@ -87,21 +85,19 @@ pub struct KeybindingConfig {
 impl Default for KeybindingConfig {
     fn default() -> Self {
         Self {
-            quit: "q".to_string(),
+            quit: "Esc".to_string(),
             force_quit: "Ctrl+c".to_string(),
             focus_next: "Tab".to_string(),
             focus_prev: "Shift+Tab".to_string(),
-            show_connect_dialog: "F3".to_string(),
-            next_tab: "Ctrl+n".to_string(),
-            prev_tab: "Ctrl+p".to_string(),
-            search: "/".to_string(),
+            show_connect_dialog: "Ctrl+t".to_string(),
+            search: "F9".to_string(),
             show_export_dialog: "F4".to_string(),
             show_bulk_update: "F8".to_string(),
             show_schema_viewer: "F6".to_string(),
             toggle_log_panel: "F7".to_string(),
-            save_connection: "Ctrl+w".to_string(),
-            switch_to_browser: "1".to_string(),
-            switch_to_profiles: "2".to_string(),
+            save_connection: "F10".to_string(),
+            switch_to_browser: "F1".to_string(),
+            switch_to_profiles: "F2".to_string(),
         }
     }
 }
@@ -323,11 +319,13 @@ timeout_secs = 60
     #[test]
     fn test_keybindings_config_defaults() {
         let config = AppConfig::default();
-        assert_eq!(config.keybindings.quit, "q");
+        assert_eq!(config.keybindings.quit, "Esc");
         assert_eq!(config.keybindings.force_quit, "Ctrl+c");
-        assert_eq!(config.keybindings.show_connect_dialog, "F3");
-        assert_eq!(config.keybindings.switch_to_browser, "1");
-        assert_eq!(config.keybindings.switch_to_profiles, "2");
+        assert_eq!(config.keybindings.show_connect_dialog, "Ctrl+t");
+        assert_eq!(config.keybindings.search, "F9");
+        assert_eq!(config.keybindings.save_connection, "F10");
+        assert_eq!(config.keybindings.switch_to_browser, "F1");
+        assert_eq!(config.keybindings.switch_to_profiles, "F2");
     }
 
     #[test]
@@ -336,17 +334,17 @@ timeout_secs = 60
 [keybindings]
 quit = "Alt+q"
 show_connect_dialog = "Alt+t"
-switch_to_browser = "F1"
-switch_to_profiles = "F2"
+switch_to_browser = "F11"
+switch_to_profiles = "F12"
 "#;
         let config = AppConfig::from_toml(toml).unwrap();
         assert_eq!(config.keybindings.quit, "Alt+q");
         assert_eq!(config.keybindings.show_connect_dialog, "Alt+t");
-        assert_eq!(config.keybindings.switch_to_browser, "F1");
-        assert_eq!(config.keybindings.switch_to_profiles, "F2");
+        assert_eq!(config.keybindings.switch_to_browser, "F11");
+        assert_eq!(config.keybindings.switch_to_profiles, "F12");
         // Non-specified fields keep defaults
         assert_eq!(config.keybindings.force_quit, "Ctrl+c");
-        assert_eq!(config.keybindings.search, "/");
+        assert_eq!(config.keybindings.search, "F9");
     }
 
     #[test]

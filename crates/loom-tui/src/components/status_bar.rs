@@ -7,7 +7,7 @@ use crate::component::Component;
 use crate::keymap::Keymap;
 use crate::theme::Theme;
 
-/// Bottom status bar showing connection info and hints.
+/// Bottom status bar showing connection info (left) and keybinding hints (right).
 pub struct StatusBar {
     pub connection_info: String,
     pub entry_count: Option<usize>,
@@ -18,19 +18,20 @@ pub struct StatusBar {
 impl StatusBar {
     pub fn new(theme: Theme, keymap: &Keymap) -> Self {
         let hints = format!(
-            " | {}:quit {}:focus {}:search {}:connect {}:export {}:schema {}:logs {}:browser {}:profiles ",
-            keymap.hint("quit"),
-            keymap.hint("focus_next"),
-            keymap.hint("search"),
+            "{}:browser {}:profiles {}:connect {}:export {}:schema {}:logs {}:bulk {}:search {}:save {}:quit",
+            keymap.hint("switch_to_browser"),
+            keymap.hint("switch_to_profiles"),
             keymap.hint("show_connect_dialog"),
             keymap.hint("show_export_dialog"),
             keymap.hint("show_schema_viewer"),
             keymap.hint("toggle_log_panel"),
-            keymap.hint("switch_to_browser"),
-            keymap.hint("switch_to_profiles"),
+            keymap.hint("show_bulk_update"),
+            keymap.hint("search"),
+            keymap.hint("save_connection"),
+            keymap.hint("quit"),
         );
         Self {
-            connection_info: "Not connected".to_string(),
+            connection_info: String::new(),
             entry_count: None,
             theme,
             hints,
@@ -38,37 +39,43 @@ impl StatusBar {
     }
 
     pub fn set_connected(&mut self, host: &str, server_type: &str) {
-        self.connection_info = format!("Connected: {} | {}", host, server_type);
+        self.connection_info = format!("{} ({})", host, server_type);
     }
 
     pub fn set_disconnected(&mut self) {
-        self.connection_info = "Not connected".to_string();
+        self.connection_info = String::new();
         self.entry_count = None;
     }
 }
 
 impl Component for StatusBar {
     fn render(&self, frame: &mut Frame, area: Rect, _focused: bool) {
-        let mut spans = vec![
-            Span::styled(" ", self.theme.status_bar),
-            Span::styled(&self.connection_info, self.theme.status_bar),
-        ];
+        let width = area.width as usize;
 
-        if let Some(count) = self.entry_count {
-            spans.push(Span::styled(
-                format!(" | {} entries", count),
-                self.theme.status_bar,
-            ));
-        }
+        // Build left side: connection info + entry count
+        let left = if self.connection_info.is_empty() {
+            String::new()
+        } else {
+            let mut s = format!(" {}", self.connection_info);
+            if let Some(count) = self.entry_count {
+                s.push_str(&format!(" | {} entries", count));
+            }
+            s
+        };
 
-        spans.push(Span::styled(&self.hints, self.theme.status_bar));
+        // Right side: keybinding hints (with trailing space)
+        let right = format!("{} ", self.hints);
 
-        // Pad to fill width
-        let content_len: usize = spans.iter().map(|s| s.content.len()).sum();
-        let padding = " ".repeat(area.width as usize - content_len.min(area.width as usize));
-        spans.push(Span::styled(padding, self.theme.status_bar));
+        let left_len = left.len();
+        let right_len = right.len();
+        let gap = width.saturating_sub(left_len + right_len);
+        let padding = " ".repeat(gap);
 
-        let line = Line::from(spans);
+        let line = Line::from(vec![
+            Span::styled(left, self.theme.status_bar),
+            Span::styled(padding, self.theme.status_bar),
+            Span::styled(right, self.theme.status_bar),
+        ]);
         let bar = Paragraph::new(line);
         frame.render_widget(bar, area);
     }

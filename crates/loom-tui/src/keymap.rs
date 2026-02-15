@@ -148,18 +148,6 @@ impl Keymap {
                 Action::ShowConnectDialog,
             ),
             (
-                "next_tab",
-                &config.next_tab,
-                &defaults.next_tab,
-                Action::NextTab,
-            ),
-            (
-                "prev_tab",
-                &config.prev_tab,
-                &defaults.prev_tab,
-                Action::PrevTab,
-            ),
-            (
                 "search",
                 &config.search,
                 &defaults.search,
@@ -440,7 +428,7 @@ mod tests {
     #[test]
     fn test_default_quit() {
         let km = Keymap::default();
-        let action = km.resolve(key(KeyCode::Char('q')), FocusTarget::TreePanel);
+        let action = km.resolve(key(KeyCode::Esc), FocusTarget::TreePanel);
         assert!(matches!(action, Action::Quit));
     }
 
@@ -459,9 +447,9 @@ mod tests {
     }
 
     #[test]
-    fn test_default_f3_connect() {
+    fn test_default_ctrl_t_connect() {
         let km = Keymap::default();
-        let action = km.resolve(key(KeyCode::F(3)), FocusTarget::TreePanel);
+        let action = km.resolve(ctrl(KeyCode::Char('t')), FocusTarget::TreePanel);
         assert!(matches!(action, Action::ShowConnectDialog));
     }
 
@@ -480,16 +468,16 @@ mod tests {
     }
 
     #[test]
-    fn test_default_ctrl_w_save_connection() {
+    fn test_default_f10_save_connection() {
         let km = Keymap::default();
-        let action = km.resolve(ctrl(KeyCode::Char('w')), FocusTarget::TreePanel);
+        let action = km.resolve(key(KeyCode::F(10)), FocusTarget::TreePanel);
         assert!(matches!(action, Action::SaveCurrentConnection));
     }
 
     #[test]
-    fn test_default_search_slash() {
+    fn test_default_f9_search() {
         let km = Keymap::default();
-        let action = km.resolve(key(KeyCode::Char('/')), FocusTarget::DetailPanel);
+        let action = km.resolve(key(KeyCode::F(9)), FocusTarget::DetailPanel);
         assert!(matches!(action, Action::SearchFocusInput));
     }
 
@@ -521,7 +509,7 @@ mod tests {
     fn test_custom_keybinding() {
         let mut config = KeybindingConfig::default();
         config.quit = "Alt+q".to_string();
-        config.show_connect_dialog = "F1".to_string();
+        config.show_connect_dialog = "F5".to_string();
 
         let km = Keymap::from_config(&config);
 
@@ -533,11 +521,11 @@ mod tests {
         assert!(matches!(action, Action::Quit));
 
         // Custom connect dialog
-        let action = km.resolve(key(KeyCode::F(1)), FocusTarget::TreePanel);
+        let action = km.resolve(key(KeyCode::F(5)), FocusTarget::TreePanel);
         assert!(matches!(action, Action::ShowConnectDialog));
 
-        // Old 'q' no longer quits (overridden)
-        let action = km.resolve(key(KeyCode::Char('q')), FocusTarget::TreePanel);
+        // Old Esc no longer quits (overridden)
+        let action = km.resolve(key(KeyCode::Esc), FocusTarget::TreePanel);
         assert!(matches!(action, Action::None));
     }
 
@@ -548,23 +536,15 @@ mod tests {
 
         let km = Keymap::from_config(&config);
 
-        // Should fall back to default "q"
-        let action = km.resolve(key(KeyCode::Char('q')), FocusTarget::TreePanel);
+        // Should fall back to default "Esc"
+        let action = km.resolve(key(KeyCode::Esc), FocusTarget::TreePanel);
         assert!(matches!(action, Action::Quit));
     }
 
     #[test]
-    fn test_ctrl_defaults() {
+    fn test_fkey_defaults() {
         let km = Keymap::default();
 
-        assert!(matches!(
-            km.resolve(ctrl(KeyCode::Char('n')), FocusTarget::TreePanel),
-            Action::NextTab
-        ));
-        assert!(matches!(
-            km.resolve(ctrl(KeyCode::Char('p')), FocusTarget::TreePanel),
-            Action::PrevTab
-        ));
         assert!(matches!(
             km.resolve(key(KeyCode::F(8)), FocusTarget::TreePanel),
             Action::ShowBulkUpdateDialog
@@ -574,11 +554,19 @@ mod tests {
             Action::ToggleLogPanel
         ));
         assert!(matches!(
-            km.resolve(key(KeyCode::Char('1')), FocusTarget::TreePanel),
+            km.resolve(key(KeyCode::F(9)), FocusTarget::TreePanel),
+            Action::SearchFocusInput
+        ));
+        assert!(matches!(
+            km.resolve(key(KeyCode::F(10)), FocusTarget::TreePanel),
+            Action::SaveCurrentConnection
+        ));
+        assert!(matches!(
+            km.resolve(key(KeyCode::F(1)), FocusTarget::TreePanel),
             Action::SwitchLayout(ActiveLayout::Browser)
         ));
         assert!(matches!(
-            km.resolve(key(KeyCode::Char('2')), FocusTarget::TreePanel),
+            km.resolve(key(KeyCode::F(2)), FocusTarget::TreePanel),
             Action::SwitchLayout(ActiveLayout::Profiles)
         ));
     }
@@ -586,11 +574,12 @@ mod tests {
     #[test]
     fn test_hint_returns_display_string() {
         let km = Keymap::default();
-        assert_eq!(km.hint("quit"), "q");
-        assert_eq!(km.hint("show_connect_dialog"), "F3");
-        assert_eq!(km.hint("switch_to_browser"), "1");
-        assert_eq!(km.hint("switch_to_profiles"), "2");
-        assert_eq!(km.hint("search"), "/");
+        assert_eq!(km.hint("quit"), "Esc");
+        assert_eq!(km.hint("show_connect_dialog"), "C-t");
+        assert_eq!(km.hint("switch_to_browser"), "F1");
+        assert_eq!(km.hint("switch_to_profiles"), "F2");
+        assert_eq!(km.hint("search"), "F9");
+        assert_eq!(km.hint("save_connection"), "F10");
         assert_eq!(km.hint("focus_next"), "Tab");
     }
 
