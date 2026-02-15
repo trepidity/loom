@@ -108,7 +108,7 @@ impl ConnectDialog {
         let layout = Layout::vertical([Constraint::Length(1), Constraint::Min(1)]).split(inner);
 
         let hint = Line::from(vec![
-            Span::styled("  j/k", self.theme.header),
+            Span::styled("  \u{2191}/\u{2193}", self.theme.header),
             Span::styled(": navigate  ", self.theme.dimmed),
             Span::styled("Enter", self.theme.header),
             Span::styled(": connect  ", self.theme.dimmed),

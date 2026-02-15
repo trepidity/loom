@@ -280,7 +280,7 @@ impl SchemaViewer {
             ])
         } else {
             Line::from(Span::styled(
-                "Tab:switch  j/k:navigate  /:filter  q:close",
+                "Tab:switch  \u{2191}/\u{2193}:navigate  /:filter  q:close",
                 self.theme.dimmed,
             ))
         };

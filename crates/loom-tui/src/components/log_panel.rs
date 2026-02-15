@@ -161,7 +161,7 @@ impl LogPanel {
 
         // Hints
         let hints = Line::from(Span::styled(
-            "j/k:scroll  g/G:top/bottom  q:close",
+            "\u{2191}/\u{2193}:scroll  g/G:top/bottom  q:close",
             self.theme.dimmed,
         ));
         frame.render_widget(Paragraph::new(hints), layout[1]);

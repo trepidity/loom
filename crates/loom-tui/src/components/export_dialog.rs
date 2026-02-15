@@ -258,7 +258,7 @@ impl ExportDialog {
 
         // Hints
         let hint_text = if format_active {
-            "Tab:next  j/k:select  F2:cycle  Enter:export  Esc:cancel"
+            "Tab:next  \u{2191}/\u{2193}:select  F2:cycle  Enter:export  Esc:cancel"
         } else {
             "Tab:next  Enter:export  Esc:cancel"
         };
