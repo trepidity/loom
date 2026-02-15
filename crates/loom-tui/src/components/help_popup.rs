@@ -160,27 +160,72 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
         HelpSection {
             title: "GLOBAL SHORTCUTS (configurable)".to_string(),
             entries: vec![
-                (keymap.hint("switch_to_browser").to_string(), "Browser layout".to_string()),
-                (keymap.hint("switch_to_profiles").to_string(), "Profiles layout".to_string()),
-                (keymap.hint("show_connect_dialog").to_string(), "Connect dialog".to_string()),
-                (keymap.hint("show_export_dialog").to_string(), "Export dialog".to_string()),
-                (format!("{}/?", keymap.hint("show_help")), "Help".to_string()),
-                (keymap.hint("show_schema_viewer").to_string(), "Schema viewer".to_string()),
-                (keymap.hint("toggle_log_panel").to_string(), "Log panel".to_string()),
-                (keymap.hint("show_bulk_update").to_string(), "Bulk update".to_string()),
-                (keymap.hint("search").to_string(), "Focus search input".to_string()),
-                (keymap.hint("save_connection").to_string(), "Save connection".to_string()),
-                (keymap.hint("focus_next").to_string(), "Next panel".to_string()),
-                (keymap.hint("focus_prev").to_string(), "Previous panel".to_string()),
+                (
+                    keymap.hint("switch_to_browser").to_string(),
+                    "Browser layout".to_string(),
+                ),
+                (
+                    keymap.hint("switch_to_profiles").to_string(),
+                    "Profiles layout".to_string(),
+                ),
+                (
+                    keymap.hint("show_connect_dialog").to_string(),
+                    "Connect dialog".to_string(),
+                ),
+                (
+                    keymap.hint("show_export_dialog").to_string(),
+                    "Export dialog".to_string(),
+                ),
+                (
+                    format!("{}/?", keymap.hint("show_help")),
+                    "Help".to_string(),
+                ),
+                (
+                    keymap.hint("show_schema_viewer").to_string(),
+                    "Schema viewer".to_string(),
+                ),
+                (
+                    keymap.hint("toggle_log_panel").to_string(),
+                    "Log panel".to_string(),
+                ),
+                (
+                    keymap.hint("show_bulk_update").to_string(),
+                    "Bulk update".to_string(),
+                ),
+                (
+                    keymap.hint("search").to_string(),
+                    "Focus search input".to_string(),
+                ),
+                (
+                    keymap.hint("save_connection").to_string(),
+                    "Save connection".to_string(),
+                ),
+                (
+                    keymap.hint("focus_next").to_string(),
+                    "Next panel".to_string(),
+                ),
+                (
+                    keymap.hint("focus_prev").to_string(),
+                    "Previous panel".to_string(),
+                ),
                 (keymap.hint("quit").to_string(), "Quit".to_string()),
-                (keymap.hint("force_quit").to_string(), "Force quit".to_string()),
+                (
+                    keymap.hint("force_quit").to_string(),
+                    "Force quit".to_string(),
+                ),
             ],
         },
         HelpSection {
             title: "TREE PANEL".to_string(),
             entries: vec![
-                ("j/k \u{2191}/\u{2193}".to_string(), "Navigate up/down".to_string()),
-                ("l/\u{2192}/Enter".to_string(), "Expand / toggle node".to_string()),
+                (
+                    "j/k \u{2191}/\u{2193}".to_string(),
+                    "Navigate up/down".to_string(),
+                ),
+                (
+                    "l/\u{2192}/Enter".to_string(),
+                    "Expand / toggle node".to_string(),
+                ),
                 ("h/\u{2190}".to_string(), "Collapse node".to_string()),
                 ("a".to_string(), "Create child entry".to_string()),
                 ("d/Delete".to_string(), "Delete entry".to_string()),
@@ -189,7 +234,10 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
         HelpSection {
             title: "DETAIL PANEL".to_string(),
             entries: vec![
-                ("j/k \u{2191}/\u{2193}".to_string(), "Navigate attributes".to_string()),
+                (
+                    "j/k \u{2191}/\u{2193}".to_string(),
+                    "Navigate attributes".to_string(),
+                ),
                 ("e/Enter".to_string(), "Edit attribute value".to_string()),
                 ("a".to_string(), "Add new attribute".to_string()),
                 ("+".to_string(), "Add value to attribute".to_string()),
@@ -210,7 +258,10 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
         HelpSection {
             title: "PROFILES TREE".to_string(),
             entries: vec![
-                ("j/k \u{2191}/\u{2193}".to_string(), "Navigate profiles".to_string()),
+                (
+                    "j/k \u{2191}/\u{2193}".to_string(),
+                    "Navigate profiles".to_string(),
+                ),
                 ("l/\u{2192}".to_string(), "Expand folder / view".to_string()),
                 ("h/\u{2190}".to_string(), "Collapse folder".to_string()),
                 ("e".to_string(), "Edit / view profile".to_string()),
@@ -234,7 +285,10 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
         HelpSection {
             title: "SEARCH RESULTS".to_string(),
             entries: vec![
-                ("j/k \u{2191}/\u{2193}".to_string(), "Navigate results".to_string()),
+                (
+                    "j/k \u{2191}/\u{2193}".to_string(),
+                    "Navigate results".to_string(),
+                ),
                 ("Enter".to_string(), "Go to selected entry".to_string()),
                 ("Esc/q".to_string(), "Close".to_string()),
             ],
@@ -262,7 +316,10 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
             entries: vec![
                 ("y".to_string(), "Confirm (Yes)".to_string()),
                 ("n/Esc".to_string(), "Cancel (No)".to_string()),
-                ("h/l \u{2190}/\u{2192}".to_string(), "Select Yes / No".to_string()),
+                (
+                    "h/l \u{2190}/\u{2192}".to_string(),
+                    "Select Yes / No".to_string(),
+                ),
                 ("Enter".to_string(), "Execute selection".to_string()),
             ],
         },
