@@ -39,11 +39,6 @@ impl CredentialPromptDialog {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-        self.active_buffer_mut().push_str(&filtered);
-    }
-
     pub fn show(&mut self, profile: ConnectionProfile) {
         self.bind_dn = profile.bind_dn.clone().unwrap_or_default();
         self.password.clear();

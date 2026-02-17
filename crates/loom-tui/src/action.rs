@@ -150,9 +150,6 @@ pub enum Action {
     ConnMgrDelete(usize),                       // delete saved profile by index
     ConnMgrConnect(usize),                      // connect from connections manager
 
-    // Paste
-    PasteText(String),
-
     // No-op
     None,
 }

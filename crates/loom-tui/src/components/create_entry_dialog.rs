@@ -42,11 +42,6 @@ impl CreateEntryDialog {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-        self.active_text_buffer_mut().push_str(&filtered);
-    }
-
     pub fn show(&mut self, parent_dn: String) {
         self.parent_dn = parent_dn;
         self.rdn.clear();

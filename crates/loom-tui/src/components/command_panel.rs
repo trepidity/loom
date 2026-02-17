@@ -24,13 +24,6 @@ pub struct StatusMessage {
 }
 
 impl CommandPanel {
-    pub fn paste_text(&mut self, text: &str) {
-        if self.input_active {
-            let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-            self.input_buffer.push_str(&filtered);
-        }
-    }
-
     pub fn new(theme: Theme) -> Self {
         Self {
             messages: Vec::new(),

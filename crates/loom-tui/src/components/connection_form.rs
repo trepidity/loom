@@ -253,24 +253,6 @@ impl ConnectionForm {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        if !self.is_editing() {
-            return;
-        }
-        let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-        if matches!(
-            self.active_field,
-            Field::Port | Field::PageSize | Field::Timeout
-        ) {
-            let digits: String = filtered.chars().filter(|c| c.is_ascii_digit()).collect();
-            if let Some(buf) = self.active_buffer_mut() {
-                buf.push_str(&digits);
-            }
-        } else if let Some(buf) = self.active_buffer_mut() {
-            buf.push_str(&filtered);
-        }
-    }
-
     fn active_buffer_mut(&mut self) -> Option<&mut String> {
         match self.active_field {
             Field::Name => Some(&mut self.name),

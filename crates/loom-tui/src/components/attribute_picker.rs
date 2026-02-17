@@ -48,13 +48,6 @@ impl AttributePicker {
     }
 
     /// Open the picker with the given DN and candidate attributes.
-    pub fn paste_text(&mut self, text: &str) {
-        let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-        self.input.insert_str(self.cursor, &filtered);
-        self.cursor += filtered.len();
-        self.refilter();
-    }
-
     pub fn show(&mut self, dn: String, candidates: Vec<(String, String)>) {
         self.dn = dn;
         self.input.clear();

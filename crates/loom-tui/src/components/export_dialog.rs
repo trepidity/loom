@@ -52,13 +52,6 @@ impl ExportDialog {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        if let Some(buf) = self.active_text_buffer_mut() {
-            let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-            buf.push_str(&filtered);
-        }
-    }
-
     pub fn show(&mut self, _entry_count: usize) {
         self.filter = "(objectClass=*)".to_string();
         self.attributes = "*".to_string();

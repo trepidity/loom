@@ -79,16 +79,6 @@ impl NewConnectionDialog {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-        if self.active_field == Field::Port {
-            let digits: String = filtered.chars().filter(|c| c.is_ascii_digit()).collect();
-            self.active_buffer_mut().push_str(&digits);
-        } else {
-            self.active_buffer_mut().push_str(&filtered);
-        }
-    }
-
     pub fn show(&mut self) {
         self.name.clear();
         self.host.clear();

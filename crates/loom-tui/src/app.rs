@@ -2,9 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crossterm::event::MouseEventKind;
-use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::Style;
 use tokio::sync::Mutex;
 use tracing::{debug, error};
 
@@ -52,14 +50,6 @@ enum DragTarget {
     Tree,
     /// Horizontal divider between top panels and command panel.
     Detail,
-}
-
-/// Mouse text selection state.
-#[derive(Debug, Clone)]
-struct TextSelection {
-    anchor: (u16, u16),
-    end: (u16, u16),
-    text: Option<String>,
 }
 
 /// Backend for a connection tab — either live LDAP or offline/example.
@@ -143,10 +133,6 @@ pub struct App {
     detail_split_pct: u16, // top panels height as % of content area
     drag_target: Option<DragTarget>,
 
-    // Mouse text selection & clipboard
-    text_selection: Option<TextSelection>,
-    clipboard: Option<arboard::Clipboard>,
-
     // Async communication
     action_tx: tokio::sync::mpsc::UnboundedSender<Action>,
     action_rx: tokio::sync::mpsc::UnboundedReceiver<Action>,
@@ -201,8 +187,6 @@ impl App {
             tree_split_pct: 25,
             detail_split_pct: 75,
             drag_target: None,
-            text_selection: None,
-            clipboard: arboard::Clipboard::new().ok(),
             action_tx,
             action_rx,
         }
@@ -1028,30 +1012,19 @@ impl App {
     }
 
     fn handle_mouse(&mut self, mouse: crossterm::event::MouseEvent) -> Action {
-        // Popups block mouse events; also clear any drag/selection
+        // Popups block mouse events; also clear any drag
         if self.popup_active() {
             self.drag_target = None;
-            self.text_selection = None;
             return Action::None;
         }
 
         match mouse.kind {
             MouseEventKind::Down(crossterm::event::MouseButton::Left) => {
-                // Clear any previous selection
-                self.text_selection = None;
-
                 // Check if click is on a panel divider (start drag)
                 if let Some(target) = self.divider_hit(mouse.column, mouse.row) {
                     self.drag_target = Some(target);
                     return Action::None;
                 }
-
-                // Start a text selection
-                self.text_selection = Some(TextSelection {
-                    anchor: (mouse.column, mouse.row),
-                    end: (mouse.column, mouse.row),
-                    text: None,
-                });
 
                 let pos = Rect::new(mouse.column, mouse.row, 1, 1);
 
@@ -1103,38 +1076,11 @@ impl App {
             MouseEventKind::Drag(crossterm::event::MouseButton::Left) => {
                 if let Some(target) = self.drag_target {
                     self.apply_drag(target, mouse.column, mouse.row);
-                } else if let Some(ref mut sel) = self.text_selection {
-                    sel.end = (mouse.column, mouse.row);
-                }
-                Action::None
-            }
-            MouseEventKind::Up(crossterm::event::MouseButton::Left) => {
-                self.drag_target = None;
-                // Copy selected text to clipboard on mouse-up
-                if let Some(ref sel) = self.text_selection {
-                    if let Some(ref text) = sel.text {
-                        if !text.is_empty() {
-                            if let Some(ref mut cb) = self.clipboard {
-                                let _ = cb.set_text(text.clone());
-                            }
-                        }
-                    }
                 }
                 Action::None
             }
             MouseEventKind::Up(_) => {
                 self.drag_target = None;
-                Action::None
-            }
-            MouseEventKind::Down(crossterm::event::MouseButton::Right) => {
-                // Right-click paste
-                if let Some(ref mut cb) = self.clipboard {
-                    if let Ok(text) = cb.get_text() {
-                        if !text.is_empty() {
-                            return Action::PasteText(text);
-                        }
-                    }
-                }
                 Action::None
             }
             _ => Action::None,
@@ -1840,10 +1786,6 @@ impl App {
                 }
             }
 
-            Action::PasteText(text) => {
-                self.paste_into_active_input(&text);
-            }
-
             Action::Tick => {
                 // Dispatch tick to attribute editor for debounced DN search
                 if self.attribute_editor.visible {
@@ -2066,105 +2008,7 @@ impl App {
         if self.log_panel.visible {
             self.log_panel.render(frame, full);
         }
-
-        // Draw text selection overlay (after all widgets/popups)
-        if let Some(ref sel) = self.text_selection {
-            if sel.anchor != sel.end {
-                let style = self.theme.selection_highlight;
-                extract_and_highlight_selection(
-                    frame.buffer_mut(),
-                    &mut self.text_selection,
-                    style,
-                );
-            }
-        }
     }
-
-    fn paste_into_active_input(&mut self, text: &str) {
-        if self.attribute_editor.visible {
-            self.attribute_editor.paste_text(text);
-        } else if self.attribute_picker.visible {
-            self.attribute_picker.paste_text(text);
-        } else if self.new_connection_dialog.visible {
-            self.new_connection_dialog.paste_text(text);
-        } else if self.credential_prompt.visible {
-            self.credential_prompt.paste_text(text);
-        } else if self.search_dialog.visible {
-            // search_dialog has no text input
-        } else if self.export_dialog.visible {
-            self.export_dialog.paste_text(text);
-        } else if self.bulk_update_dialog.visible {
-            self.bulk_update_dialog.paste_text(text);
-        } else if self.create_entry_dialog.visible {
-            self.create_entry_dialog.paste_text(text);
-        } else if self.schema_viewer.visible {
-            self.schema_viewer.paste_text(text);
-        } else if self.command_panel.input_active
-            && self.active_layout == ActiveLayout::Browser
-        {
-            self.command_panel.paste_text(text);
-        } else if self.connection_form.is_editing()
-            && self.active_layout == ActiveLayout::Profiles
-        {
-            self.connection_form.paste_text(text);
-        }
-    }
-}
-
-fn extract_and_highlight_selection(
-    buf: &mut Buffer,
-    sel: &mut Option<TextSelection>,
-    style: Style,
-) {
-    let selection = match sel.as_mut() {
-        Some(s) => s,
-        None => return,
-    };
-
-    let (ax, ay) = selection.anchor;
-    let (ex, ey) = selection.end;
-
-    // Normalize so start is top-left
-    let (start_row, start_col, end_row, end_col) = if (ay, ax) <= (ey, ex) {
-        (ay, ax, ey, ex)
-    } else {
-        (ey, ex, ay, ax)
-    };
-
-    let buf_area = buf.area;
-    let mut lines: Vec<String> = Vec::new();
-
-    for row in start_row..=end_row {
-        if row < buf_area.y || row >= buf_area.y + buf_area.height {
-            continue;
-        }
-        let col_start = if row == start_row { start_col } else { buf_area.x };
-        let col_end = if row == end_row {
-            end_col
-        } else {
-            buf_area.x + buf_area.width - 1
-        };
-
-        let mut line = String::new();
-        for col in col_start..=col_end {
-            if col < buf_area.x || col >= buf_area.x + buf_area.width {
-                continue;
-            }
-            let cell = &buf[(col, row)];
-            let sym = cell.symbol();
-            // Skip empty symbols (wide-char continuations)
-            if !sym.is_empty() && sym != "\0" {
-                line.push_str(sym);
-            }
-            // Apply highlight style
-            buf[(col, row)].set_style(style);
-        }
-        // Trim trailing whitespace from each line
-        let trimmed = line.trim_end().to_string();
-        lines.push(trimmed);
-    }
-
-    selection.text = Some(lines.join("\n"));
 }
 
 /// Resolve password from the connection profile's credential method.

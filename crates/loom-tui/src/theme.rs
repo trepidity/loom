@@ -24,7 +24,6 @@ pub struct Theme {
     pub popup_title: Style,
     pub command_prompt: Style,
     pub attr_operational: Style,
-    pub selection_highlight: Style,
 }
 
 impl Theme {
@@ -66,7 +65,6 @@ impl Theme {
             popup_title: Style::default().fg(mauve).add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(peach),
             attr_operational: Style::default().fg(overlay0),
-            selection_highlight: Style::default().add_modifier(Modifier::REVERSED),
         }
     }
 
@@ -102,7 +100,6 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(Color::Rgb(0, 255, 0)),
             attr_operational: Style::default().fg(Color::Rgb(0, 120, 0)),
-            selection_highlight: Style::default().add_modifier(Modifier::REVERSED),
         }
     }
 
@@ -134,7 +131,6 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(Color::Blue),
             attr_operational: Style::default().fg(Color::Gray),
-            selection_highlight: Style::default().add_modifier(Modifier::REVERSED),
         }
     }
 
@@ -171,7 +167,6 @@ impl Theme {
             popup_title: Style::default().fg(yellow).add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(cyan),
             attr_operational: Style::default().fg(base01),
-            selection_highlight: Style::default().add_modifier(Modifier::REVERSED),
         }
     }
 
@@ -210,7 +205,6 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
             command_prompt: Style::default().fg(frost2),
             attr_operational: Style::default().fg(frost0),
-            selection_highlight: Style::default().add_modifier(Modifier::REVERSED),
         }
     }
 
@@ -301,8 +295,6 @@ struct ThemeColors {
     command_prompt: StyleDef,
     #[serde(default)]
     attr_operational: StyleDef,
-    #[serde(default)]
-    selection_highlight: StyleDef,
 }
 
 fn default_white() -> String {
@@ -371,14 +363,6 @@ impl ThemeDefinition {
             popup_title: c.popup_title.to_style(),
             command_prompt: c.command_prompt.to_style(),
             attr_operational: c.attr_operational.to_style(),
-            selection_highlight: {
-                let s = c.selection_highlight.to_style();
-                if s == Style::default() {
-                    Style::default().add_modifier(Modifier::REVERSED)
-                } else {
-                    s
-                }
-            },
         }
     }
 }

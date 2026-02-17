@@ -144,17 +144,6 @@ impl AttributeEditor {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        if self.focus == EditorFocus::Input {
-            let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-            self.input_buffer.insert_str(self.cursor_pos, &filtered);
-            self.cursor_pos += filtered.len();
-            if self.is_dn_search {
-                self.search_dirty = true;
-            }
-        }
-    }
-
     pub fn hide(&mut self) {
         self.visible = false;
         self.op = None;

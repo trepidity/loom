@@ -50,13 +50,6 @@ impl SchemaViewer {
         }
     }
 
-    pub fn paste_text(&mut self, text: &str) {
-        if self.filter_active {
-            let filtered: String = text.chars().filter(|c| !c.is_control()).collect();
-            self.filter.push_str(&filtered);
-        }
-    }
-
     pub fn show(&mut self, schema: &SchemaCache) {
         // Deduplicate by OID (schema entries are stored per-name)
         let mut seen_oc = std::collections::HashSet::new();

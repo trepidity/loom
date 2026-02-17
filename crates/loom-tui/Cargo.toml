@@ -24,4 +24,3 @@ strum = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
-arboard = { workspace = true }
