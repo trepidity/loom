@@ -13,7 +13,7 @@ use loom_core::offline::OfflineDirectory;
 use loom_core::schema::{AttributeSyntax, SchemaCache};
 use loom_core::tree::{DirectoryTree, TreeNode};
 
-use crate::action::{Action, ActiveLayout, ConnectionId, FocusTarget};
+use crate::action::{Action, ActiveLayout, ConnectionId, ContextMenuSource, FocusTarget};
 use crate::component::Component;
 use crate::components::attribute_editor::{AttributeEditor, EditOp, EditResult};
 use crate::components::attribute_picker::AttributePicker;
@@ -21,6 +21,7 @@ use crate::components::bulk_update_dialog::BulkUpdateDialog;
 use crate::components::command_panel::CommandPanel;
 use crate::components::confirm_dialog::ConfirmDialog;
 use crate::components::connect_dialog::ConnectDialog;
+use crate::components::context_menu::ContextMenu;
 use crate::components::connection_form::ConnectionForm;
 use crate::components::connections_tree::{ActiveConnInfo, ConnectionsTree};
 use crate::components::create_entry_dialog::CreateEntryDialog;
@@ -102,6 +103,7 @@ pub struct App {
     connection_form: ConnectionForm,
 
     // Popup/dialogs
+    context_menu: ContextMenu,
     confirm_dialog: ConfirmDialog,
     connect_dialog: ConnectDialog,
     new_connection_dialog: NewConnectionDialog,
@@ -163,6 +165,7 @@ impl App {
             focus: FocusManager::new(),
             connections_tree: ConnectionsTree::new(theme.clone()),
             connection_form: ConnectionForm::new(theme.clone()),
+            context_menu: ContextMenu::new(theme.clone()),
             confirm_dialog: ConfirmDialog::new(theme.clone()),
             connect_dialog: ConnectDialog::new(theme.clone()),
             new_connection_dialog: NewConnectionDialog::new(theme.clone()),
@@ -877,7 +880,8 @@ impl App {
 
     /// Check if any popup/dialog is currently visible.
     fn popup_active(&self) -> bool {
-        self.confirm_dialog.visible
+        self.context_menu.visible
+            || self.confirm_dialog.visible
             || self.connect_dialog.visible
             || self.new_connection_dialog.visible
             || self.credential_prompt.visible
@@ -908,7 +912,9 @@ impl App {
                 match app_event {
                     AppEvent::Key(key) => {
                         // Popups intercept keys first
-                        let action = if self.attribute_editor.visible {
+                        let action = if self.context_menu.visible {
+                            self.context_menu.handle_key_event(key)
+                        } else if self.attribute_editor.visible {
                             self.attribute_editor.handle_key_event(key)
                         } else if self.attribute_picker.visible {
                             self.attribute_picker.handle_key_event(key)
@@ -1076,6 +1082,36 @@ impl App {
             MouseEventKind::Drag(crossterm::event::MouseButton::Left) => {
                 if let Some(target) = self.drag_target {
                     self.apply_drag(target, mouse.column, mouse.row);
+                }
+                Action::None
+            }
+            MouseEventKind::Down(crossterm::event::MouseButton::Right) => {
+                if self.active_layout == ActiveLayout::Browser {
+                    let pos = Rect::new(mouse.column, mouse.row, 1, 1);
+                    if let Some(tree) = self.tree_area {
+                        if tree.intersects(pos) {
+                            if let Some(dn) = self.tree_panel.selected_dn().cloned() {
+                                self.context_menu.show_for_tree(&dn);
+                                self.context_menu.set_anchor(mouse.column, mouse.row);
+                                return Action::Render;
+                            }
+                        }
+                    }
+                    if let Some(detail) = self.detail_area {
+                        if detail.intersects(pos) {
+                            if let (Some(entry), Some((attr, val))) = (
+                                &self.detail_panel.entry,
+                                self.detail_panel.selected_attr_value(),
+                            ) {
+                                let dn = entry.dn.clone();
+                                let attr = attr.to_string();
+                                let val = val.to_string();
+                                self.context_menu.show_for_detail(&dn, &attr, &val);
+                                self.context_menu.set_anchor(mouse.column, mouse.row);
+                                return Action::Render;
+                            }
+                        }
+                    }
                 }
                 Action::None
             }
@@ -1799,6 +1835,44 @@ impl App {
                     }
                 }
             }
+            // Context Menu
+            Action::ShowContextMenu(source) => match &source {
+                ContextMenuSource::Tree { dn } => {
+                    self.context_menu.show_for_tree(dn);
+                }
+                ContextMenuSource::Detail {
+                    dn,
+                    attr_name,
+                    attr_value,
+                } => {
+                    self.context_menu.show_for_detail(dn, attr_name, attr_value);
+                }
+            },
+            Action::CopyToClipboard(text) => match arboard::Clipboard::new() {
+                Ok(mut clipboard) => match clipboard.set_text(&text) {
+                    Ok(_) => {
+                        let preview = if text.len() > 40 {
+                            format!("{}...", &text[..40])
+                        } else {
+                            text.clone()
+                        };
+                        let _ = self
+                            .action_tx
+                            .send(Action::StatusMessage(format!("Copied: {}", preview)));
+                    }
+                    Err(e) => {
+                        let _ = self
+                            .action_tx
+                            .send(Action::ErrorMessage(format!("Clipboard error: {}", e)));
+                    }
+                },
+                Err(e) => {
+                    let _ = self
+                        .action_tx
+                        .send(Action::ErrorMessage(format!("Clipboard unavailable: {}", e)));
+                }
+            },
+
             Action::Render | Action::Resize(_, _) | Action::None => {}
             _ => {}
         }
@@ -2007,6 +2081,9 @@ impl App {
         }
         if self.log_panel.visible {
             self.log_panel.render(frame, full);
+        }
+        if self.context_menu.visible {
+            self.context_menu.render(frame, full);
         }
     }
 }

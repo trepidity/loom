@@ -16,6 +16,19 @@ pub enum ActiveLayout {
     Profiles,
 }
 
+/// Where the context menu was invoked from, carrying the relevant state.
+#[derive(Debug, Clone)]
+pub enum ContextMenuSource {
+    Tree {
+        dn: String,
+    },
+    Detail {
+        dn: String,
+        attr_name: String,
+        attr_value: String,
+    },
+}
+
 /// All actions that can flow through the application.
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -149,6 +162,10 @@ pub enum Action {
     ConnMgrCreate(Box<ConnectionProfile>),      // create new profile
     ConnMgrDelete(usize),                       // delete saved profile by index
     ConnMgrConnect(usize),                      // connect from connections manager
+
+    // Context Menu
+    ShowContextMenu(ContextMenuSource),
+    CopyToClipboard(String),
 
     // No-op
     None,

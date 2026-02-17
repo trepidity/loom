@@ -229,6 +229,7 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
                 ("h/\u{2190}".to_string(), "Collapse node".to_string()),
                 ("a".to_string(), "Create child entry".to_string()),
                 ("d/Delete".to_string(), "Delete entry".to_string()),
+                ("Space".to_string(), "Context menu".to_string()),
             ],
         },
         HelpSection {
@@ -245,6 +246,19 @@ fn build_sections(keymap: &Keymap) -> Vec<HelpSection> {
                 ("n".to_string(), "Create child entry".to_string()),
                 ("x".to_string(), "Delete entry".to_string()),
                 ("r".to_string(), "Refresh entry".to_string()),
+                ("Space".to_string(), "Context menu".to_string()),
+            ],
+        },
+        HelpSection {
+            title: "CONTEXT MENU".to_string(),
+            entries: vec![
+                ("Space/Right-click".to_string(), "Open context menu".to_string()),
+                (
+                    "j/k \u{2191}/\u{2193}".to_string(),
+                    "Navigate items".to_string(),
+                ),
+                ("Enter/Space".to_string(), "Select item".to_string()),
+                ("Esc/q".to_string(), "Close menu".to_string()),
             ],
         },
         HelpSection {

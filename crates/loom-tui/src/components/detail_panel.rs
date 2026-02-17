@@ -5,7 +5,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState};
 use ratatui::Frame;
 
-use crate::action::Action;
+use crate::action::{Action, ContextMenuSource};
 use crate::component::Component;
 use crate::theme::Theme;
 use loom_core::entry::LdapEntry;
@@ -140,6 +140,18 @@ impl DetailPanel {
                 Action::None
             }
             KeyCode::Char('r') => Action::EntryRefresh,
+            KeyCode::Char(' ') => {
+                if let (Some(entry), Some((attr, val))) = (&self.entry, self.selected_attr_value())
+                {
+                    Action::ShowContextMenu(ContextMenuSource::Detail {
+                        dn: entry.dn.clone(),
+                        attr_name: attr.to_string(),
+                        attr_value: val.to_string(),
+                    })
+                } else {
+                    Action::None
+                }
+            }
             _ => Action::None,
         }
     }
@@ -221,30 +233,6 @@ impl Component for DetailPanel {
                 );
             }
 
-            // Render hint bar at the bottom of the inner area when focused
-            if focused && inner.height > 2 {
-                let hint_line = Line::from(vec![
-                    Span::styled(" e", self.theme.header),
-                    Span::styled("/", self.theme.dimmed),
-                    Span::styled("Enter", self.theme.header),
-                    Span::styled(":Edit  ", self.theme.dimmed),
-                    Span::styled("a", self.theme.header),
-                    Span::styled(":Add Attr  ", self.theme.dimmed),
-                    Span::styled("+", self.theme.header),
-                    Span::styled(":Add Value  ", self.theme.dimmed),
-                    Span::styled("d", self.theme.header),
-                    Span::styled(":Delete  ", self.theme.dimmed),
-                    Span::styled("r", self.theme.header),
-                    Span::styled(":Refresh", self.theme.dimmed),
-                ]);
-                let hint_area = Rect {
-                    x: inner.x,
-                    y: inner.y + inner.height - 1,
-                    width: inner.width,
-                    height: 1,
-                };
-                frame.render_widget(ratatui::widgets::Paragraph::new(hint_line), hint_area);
-            }
         } else {
             let empty = ratatui::widgets::Paragraph::new("Select an entry from the tree")
                 .style(self.theme.dimmed)

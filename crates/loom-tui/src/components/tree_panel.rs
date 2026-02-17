@@ -5,7 +5,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::action::Action;
+use crate::action::{Action, ContextMenuSource};
 use crate::theme::Theme;
 use loom_core::tree::TreeNode;
 
@@ -92,6 +92,13 @@ impl TreePanel {
                 if let Some(dn) = self.selected_dn().cloned() {
                     let msg = format!("Delete entry?\n{}", dn);
                     Action::ShowConfirm(msg, Box::new(Action::DeleteEntry(dn)))
+                } else {
+                    Action::None
+                }
+            }
+            KeyCode::Char(' ') => {
+                if let Some(dn) = self.selected_dn().cloned() {
+                    Action::ShowContextMenu(ContextMenuSource::Tree { dn })
                 } else {
                     Action::None
                 }

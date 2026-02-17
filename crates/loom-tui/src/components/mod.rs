@@ -4,6 +4,7 @@ pub mod bulk_update_dialog;
 pub mod command_panel;
 pub mod confirm_dialog;
 pub mod connect_dialog;
+pub mod context_menu;
 pub mod connection_form;
 pub mod connections_tree;
 pub mod create_entry_dialog;
