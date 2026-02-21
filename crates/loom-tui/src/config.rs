@@ -517,7 +517,10 @@ description = ""
             ..Default::default()
         };
 
-        assert_eq!(config.folder_description("Production"), Some("Prod servers"));
+        assert_eq!(
+            config.folder_description("Production"),
+            Some("Prod servers")
+        );
         assert_eq!(config.folder_description("Staging"), None); // empty => None
         assert_eq!(config.folder_description("Nonexistent"), None);
     }

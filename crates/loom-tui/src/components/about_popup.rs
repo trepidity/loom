@@ -61,10 +61,7 @@ impl AboutPopup {
         let lines = vec![
             Line::from(""),
             Line::from(Span::styled("  Loom", self.theme.popup_title)),
-            Line::from(Span::styled(
-                format!("  v{}", version),
-                self.theme.dimmed,
-            )),
+            Line::from(Span::styled(format!("  v{}", version), self.theme.dimmed)),
             Line::from(""),
             Line::from(Span::styled(
                 "  A terminal-based LDAP browser",
@@ -89,10 +86,7 @@ impl AboutPopup {
                 self.theme.dimmed,
             )),
             Line::from(""),
-            Line::from(Span::styled(
-                "  Press any key to close",
-                self.theme.dimmed,
-            )),
+            Line::from(Span::styled("  Press any key to close", self.theme.dimmed)),
         ];
 
         frame.render_widget(Paragraph::new(lines), inner);

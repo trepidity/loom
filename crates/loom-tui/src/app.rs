@@ -16,6 +16,7 @@ use loom_core::tree::{DirectoryTree, TreeNode};
 
 use crate::action::{Action, ActiveLayout, ConnectionId, ContextMenuSource, FocusTarget};
 use crate::component::Component;
+use crate::components::about_popup::AboutPopup;
 use crate::components::attribute_editor::{AttributeEditor, EditOp, EditResult};
 use crate::components::attribute_picker::AttributePicker;
 use crate::components::bulk_update_dialog::BulkUpdateDialog;
@@ -29,13 +30,12 @@ use crate::components::create_entry_dialog::CreateEntryDialog;
 use crate::components::credential_prompt::CredentialPromptDialog;
 use crate::components::detail_panel::DetailPanel;
 use crate::components::export_dialog::ExportDialog;
-use crate::components::about_popup::AboutPopup;
 use crate::components::help_popup::HelpPopup;
-use crate::components::profile_export_dialog::ProfileExportDialog;
-use crate::components::profile_import_dialog::ProfileImportDialog;
 use crate::components::layout_bar::LayoutBar;
 use crate::components::log_panel::LogPanel;
 use crate::components::new_connection_dialog::NewConnectionDialog;
+use crate::components::profile_export_dialog::ProfileExportDialog;
+use crate::components::profile_import_dialog::ProfileImportDialog;
 use crate::components::schema_viewer::SchemaViewer;
 use crate::components::search_dialog::SearchDialog;
 use crate::components::status_bar::StatusBar;
@@ -1597,8 +1597,7 @@ impl App {
                     self.command_panel
                         .push_error("No profiles to export".to_string());
                 } else {
-                    self.profile_export_dialog
-                        .show(&self.config.connections);
+                    self.profile_export_dialog.show(&self.config.connections);
                 }
             }
             Action::ConnMgrImport => {
@@ -1613,10 +1612,8 @@ impl App {
                     self.command_panel
                         .push_error(format!("Failed to save config: {}", e));
                 } else {
-                    self.command_panel.push_message(format!(
-                        "Imported {} profile(s)",
-                        count
-                    ));
+                    self.command_panel
+                        .push_message(format!("Imported {} profile(s)", count));
                 }
                 // Refresh the form if a profile was being viewed
                 if let Some(idx) = self.config.connections.len().checked_sub(1) {
@@ -1626,7 +1623,9 @@ impl App {
             }
 
             Action::ConnMgrSelectFolder(path) => {
-                let desc = self.config.folder_description(&path)
+                let desc = self
+                    .config
+                    .folder_description(&path)
                     .unwrap_or_default()
                     .to_string();
                 self.connection_form.view_folder(&path, &desc);

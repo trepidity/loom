@@ -198,7 +198,8 @@ impl ConnectionsTree {
             if parts.len() == 1 {
                 // Simple folder
                 let folder_key = format!("folder:{}", folder_path);
-                self.folder_keys.push((folder_key.clone(), folder_path.clone()));
+                self.folder_keys
+                    .push((folder_key.clone(), folder_path.clone()));
                 let folder_item = TreeItem::new(folder_key, leaf_folder.to_string(), children)
                     .expect("tree item");
                 top_items.push(folder_item);
@@ -207,7 +208,8 @@ impl ConnectionsTree {
                 let top_key = parts[0].to_string();
                 let sub_key = parts[1..].join("/");
                 let sub_folder_key = format!("folder:{}", folder_path);
-                self.folder_keys.push((sub_folder_key.clone(), folder_path.clone()));
+                self.folder_keys
+                    .push((sub_folder_key.clone(), folder_path.clone()));
                 let sub_item =
                     TreeItem::new(sub_folder_key, sub_key.clone(), children).expect("tree item");
                 folder_tree.entry(top_key).or_default().push(sub_item);
@@ -217,7 +219,8 @@ impl ConnectionsTree {
         // Merge nested folder groups
         for (top_name, sub_items) in folder_tree {
             let folder_key = format!("folder:{}", top_name);
-            self.folder_keys.push((folder_key.clone(), top_name.clone()));
+            self.folder_keys
+                .push((folder_key.clone(), top_name.clone()));
             let folder_item = TreeItem::new(folder_key, top_name, sub_items).expect("tree item");
             top_items.push(folder_item);
         }

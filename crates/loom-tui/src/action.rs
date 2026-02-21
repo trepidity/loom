@@ -164,11 +164,11 @@ pub enum Action {
     ConnMgrCreate(Box<ConnectionProfile>),      // create new profile
     ConnMgrDelete(usize),                       // delete saved profile by index
     ConnMgrConnect(usize),                      // connect from connections manager
-    ConnMgrExport,                                       // open export profiles dialog
-    ConnMgrImport,                                       // open import profiles dialog
-    ConnMgrImportExecute(Vec<ConnectionProfile>),        // commit selected imported profiles
-    ConnMgrSelectFolder(String),                         // folder path selected in tree
-    ConnMgrSaveFolderDesc(String, String),               // (folder path, new description)
+    ConnMgrExport,                              // open export profiles dialog
+    ConnMgrImport,                              // open import profiles dialog
+    ConnMgrImportExecute(Vec<ConnectionProfile>), // commit selected imported profiles
+    ConnMgrSelectFolder(String),                // folder path selected in tree
+    ConnMgrSaveFolderDesc(String, String),      // (folder path, new description)
 
     // Context Menu
     ShowContextMenu(ContextMenuSource),

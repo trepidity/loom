@@ -329,7 +329,10 @@ impl ConnectionForm {
 
     /// Whether the form is actively being edited (Tab should stay within form).
     pub fn is_editing(&self) -> bool {
-        matches!(self.mode, FormMode::Edit | FormMode::Create | FormMode::FolderEdit)
+        matches!(
+            self.mode,
+            FormMode::Edit | FormMode::Create | FormMode::FolderEdit
+        )
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) -> Action {
@@ -709,7 +712,7 @@ impl ConnectionForm {
         let layout = Layout::vertical([
             Constraint::Length(2), // Folder path
             Constraint::Length(2), // Description
-            Constraint::Min(1),   // Hints
+            Constraint::Min(1),    // Hints
         ])
         .split(inner);
 

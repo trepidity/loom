@@ -46,10 +46,7 @@ impl ProfileExportDialog {
 
     /// Show the dialog populated with the given profiles.
     pub fn show(&mut self, profiles: &[ConnectionProfile]) {
-        self.profiles = profiles
-            .iter()
-            .map(|p| (p.name.clone(), true))
-            .collect();
+        self.profiles = profiles.iter().map(|p| (p.name.clone(), true)).collect();
         self.cursor = 0;
         self.filename = "profiles.toml".to_string();
         self.active_field = ActiveField::ProfileList;
@@ -201,7 +198,7 @@ impl ProfileExportDialog {
         let layout = Layout::vertical([
             Constraint::Length(list_height), // Profile list
             Constraint::Length(2),           // Filename
-            Constraint::Min(1),             // Hints
+            Constraint::Min(1),              // Hints
         ])
         .split(inner);
 

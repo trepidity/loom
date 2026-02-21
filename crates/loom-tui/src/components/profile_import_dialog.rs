@@ -195,7 +195,7 @@ impl ProfileImportDialog {
     fn render_filepath(&self, frame: &mut Frame, area: Rect) {
         let layout = Layout::vertical([
             Constraint::Length(2), // File path
-            Constraint::Min(1),   // Hints
+            Constraint::Min(1),    // Hints
         ])
         .split(area);
 
@@ -219,7 +219,7 @@ impl ProfileImportDialog {
         let list_height = self.parsed_profiles.len().max(1) as u16 + 1; // +1 for label
         let layout = Layout::vertical([
             Constraint::Length(list_height), // Profile list
-            Constraint::Min(1),             // Hints
+            Constraint::Min(1),              // Hints
         ])
         .split(area);
 
