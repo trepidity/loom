@@ -16,6 +16,8 @@ pub mod layout_bar;
 pub mod log_panel;
 pub mod new_connection_dialog;
 pub mod popup;
+pub mod profile_export_dialog;
+pub mod profile_import_dialog;
 pub mod schema_viewer;
 pub mod search_dialog;
 pub mod status_bar;

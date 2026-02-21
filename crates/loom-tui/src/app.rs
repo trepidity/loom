@@ -30,6 +30,8 @@ use crate::components::credential_prompt::CredentialPromptDialog;
 use crate::components::detail_panel::DetailPanel;
 use crate::components::export_dialog::ExportDialog;
 use crate::components::help_popup::HelpPopup;
+use crate::components::profile_export_dialog::ProfileExportDialog;
+use crate::components::profile_import_dialog::ProfileImportDialog;
 use crate::components::layout_bar::LayoutBar;
 use crate::components::log_panel::LogPanel;
 use crate::components::new_connection_dialog::NewConnectionDialog;
@@ -117,6 +119,8 @@ pub struct App {
     schema_viewer: SchemaViewer,
     help_popup: HelpPopup,
     log_panel: LogPanel,
+    profile_export_dialog: ProfileExportDialog,
+    profile_import_dialog: ProfileImportDialog,
 
     // Ad-hoc connection tracking (for save-to-config)
     last_adhoc_profile: Option<ConnectionProfile>,
@@ -177,7 +181,9 @@ impl App {
             create_entry_dialog: CreateEntryDialog::new(theme.clone()),
             schema_viewer: SchemaViewer::new(theme.clone()),
             help_popup: HelpPopup::new(theme.clone()),
-            log_panel: LogPanel::new(theme),
+            log_panel: LogPanel::new(theme.clone()),
+            profile_export_dialog: ProfileExportDialog::new(theme.clone()),
+            profile_import_dialog: ProfileImportDialog::new(theme),
             last_adhoc_profile: None,
             tree_area: None,
             detail_area: None,
@@ -962,6 +968,8 @@ impl App {
             || self.schema_viewer.visible
             || self.help_popup.visible
             || self.log_panel.visible
+            || self.profile_export_dialog.visible
+            || self.profile_import_dialog.visible
     }
 
     /// Check if any popup, dialog, or text-input mode is active.
@@ -980,6 +988,8 @@ impl App {
             || self.schema_viewer.visible
             || self.help_popup.visible
             || self.log_panel.visible
+            || self.profile_export_dialog.visible
+            || self.profile_import_dialog.visible
             || self.command_panel.input_active
             || (self.connection_form.is_editing()
                 && self.active_layout == ActiveLayout::Profiles
@@ -1002,6 +1012,8 @@ impl App {
         self.schema_viewer.hide();
         self.help_popup.hide();
         self.log_panel.hide();
+        self.profile_export_dialog.hide();
+        self.profile_import_dialog.hide();
     }
 
     /// Main event loop.
@@ -1061,6 +1073,11 @@ impl App {
                             self.export_dialog.handle_key_event(key)
                         } else if self.bulk_update_dialog.visible {
                             self.bulk_update_dialog.handle_key_event(key)
+                        } else if self.profile_export_dialog.visible {
+                            self.profile_export_dialog
+                                .handle_key_event(key, &self.config.connections)
+                        } else if self.profile_import_dialog.visible {
+                            self.profile_import_dialog.handle_key_event(key)
                         } else if self.create_entry_dialog.visible {
                             self.create_entry_dialog.handle_key_event(key)
                         } else if self.schema_viewer.visible {
@@ -1211,6 +1228,23 @@ impl App {
                 Action::None
             }
             MouseEventKind::Down(crossterm::event::MouseButton::Right) => {
+                if self.active_layout == ActiveLayout::Profiles {
+                    let pos = Rect::new(mouse.column, mouse.row, 1, 1);
+                    if let Some(ct) = self.conn_tree_area {
+                        if ct.intersects(pos) {
+                            self.context_menu.show_for_profiles();
+                            self.context_menu.set_anchor(mouse.column, mouse.row);
+                            return Action::Render;
+                        }
+                    }
+                    if let Some(cf) = self.conn_form_area {
+                        if cf.intersects(pos) {
+                            self.context_menu.show_for_profiles();
+                            self.context_menu.set_anchor(mouse.column, mouse.row);
+                            return Action::Render;
+                        }
+                    }
+                }
                 if self.active_layout == ActiveLayout::Browser {
                     let pos = Rect::new(mouse.column, mouse.row, 1, 1);
                     if let Some(tree) = self.tree_area {
@@ -1547,6 +1581,39 @@ impl App {
                                 .push_error(format!("Connection failed: {}", e));
                         }
                     }
+                }
+            }
+
+            Action::ConnMgrExport => {
+                if self.config.connections.is_empty() {
+                    self.command_panel
+                        .push_error("No profiles to export".to_string());
+                } else {
+                    self.profile_export_dialog
+                        .show(&self.config.connections);
+                }
+            }
+            Action::ConnMgrImport => {
+                self.profile_import_dialog.show();
+            }
+            Action::ConnMgrImportExecute(profiles) => {
+                let count = profiles.len();
+                for p in profiles {
+                    self.config.connections.push(p);
+                }
+                if let Err(e) = self.config.save() {
+                    self.command_panel
+                        .push_error(format!("Failed to save config: {}", e));
+                } else {
+                    self.command_panel.push_message(format!(
+                        "Imported {} profile(s)",
+                        count
+                    ));
+                }
+                // Refresh the form if a profile was being viewed
+                if let Some(idx) = self.config.connections.len().checked_sub(1) {
+                    self.connection_form
+                        .view_profile(idx, &self.config.connections[idx].clone());
                 }
             }
 
@@ -1920,6 +1987,8 @@ impl App {
                 self.schema_viewer.hide();
                 self.help_popup.hide();
                 self.log_panel.hide();
+                self.profile_export_dialog.hide();
+                self.profile_import_dialog.hide();
             }
 
             // Status
@@ -2209,6 +2278,12 @@ impl App {
         }
         if self.bulk_update_dialog.visible {
             self.bulk_update_dialog.render(frame, full);
+        }
+        if self.profile_export_dialog.visible {
+            self.profile_export_dialog.render(frame, full);
+        }
+        if self.profile_import_dialog.visible {
+            self.profile_import_dialog.render(frame, full);
         }
         if self.create_entry_dialog.visible {
             self.create_entry_dialog.render(frame, full);

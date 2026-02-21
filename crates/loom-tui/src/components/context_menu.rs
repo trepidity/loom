@@ -123,6 +123,25 @@ impl ContextMenu {
         self.visible = true;
     }
 
+    /// Show the menu for the Profiles layout.
+    pub fn show_for_profiles(&mut self) {
+        self.items = vec![
+            MenuItem {
+                label: "Import Profiles".into(),
+                hint: "i".into(),
+                action: Action::ConnMgrImport,
+            },
+            MenuItem {
+                label: "Export Profiles".into(),
+                hint: "x".into(),
+                action: Action::ConnMgrExport,
+            },
+        ];
+        self.selected = 0;
+        self.anchor = None;
+        self.visible = true;
+    }
+
     pub fn hide(&mut self) {
         self.visible = false;
         self.items.clear();

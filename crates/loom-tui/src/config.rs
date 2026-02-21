@@ -202,6 +202,34 @@ impl AppConfig {
         }
     }
 
+    /// Serialize selected profiles to a TOML string with [[connections]] blocks.
+    pub fn export_profiles(profiles: &[ConnectionProfile]) -> Result<String, String> {
+        let mut output = String::from("# Loom LDAP Browser — Exported Profiles\n");
+        for profile in profiles {
+            let block = toml::to_string(profile)
+                .map_err(|e| format!("Failed to serialize profile '{}': {}", profile.name, e))?;
+            output.push_str("\n[[connections]]\n");
+            output.push_str(&block);
+        }
+        Ok(output)
+    }
+
+    /// Parse profiles from a TOML string (expects [[connections]] blocks).
+    pub fn import_profiles(content: &str) -> Result<Vec<ConnectionProfile>, String> {
+        // Wrap in a minimal AppConfig-like structure for parsing
+        #[derive(Deserialize)]
+        struct ProfilesFile {
+            #[serde(default)]
+            connections: Vec<ConnectionProfile>,
+        }
+        let parsed: ProfilesFile =
+            toml::from_str(content).map_err(|e| format!("Failed to parse TOML: {}", e))?;
+        if parsed.connections.is_empty() {
+            return Err("No [[connections]] profiles found in file".to_string());
+        }
+        Ok(parsed.connections)
+    }
+
     /// Append a connection profile to the config file on disk.
     /// Creates the config directory and file if they don't exist.
     /// The password is never written — only the profile metadata.
@@ -364,5 +392,96 @@ host = "localhost"
         assert_eq!(conn.port, 389); // default
         assert_eq!(conn.page_size, 500); // default
         assert_eq!(conn.timeout_secs, 30); // default
+    }
+
+    #[test]
+    fn test_export_profiles_roundtrip() {
+        let profiles = vec![
+            ConnectionProfile {
+                name: "Production".to_string(),
+                host: "ldap.example.com".to_string(),
+                port: 636,
+                tls_mode: TlsMode::Ldaps,
+                bind_dn: Some("cn=admin,dc=example,dc=com".to_string()),
+                base_dn: Some("dc=example,dc=com".to_string()),
+                credential_method: CredentialMethod::Prompt,
+                password_command: None,
+                page_size: 1000,
+                timeout_secs: 60,
+                relax_rules: false,
+                folder: None,
+                read_only: false,
+                offline: false,
+            },
+            ConnectionProfile {
+                name: "Staging".to_string(),
+                host: "ldap-staging.internal".to_string(),
+                port: 389,
+                tls_mode: TlsMode::None,
+                bind_dn: None,
+                base_dn: None,
+                credential_method: CredentialMethod::Prompt,
+                password_command: None,
+                page_size: 500,
+                timeout_secs: 30,
+                relax_rules: false,
+                folder: None,
+                read_only: false,
+                offline: false,
+            },
+        ];
+
+        let exported = AppConfig::export_profiles(&profiles).unwrap();
+        assert!(exported.contains("[[connections]]"));
+        assert!(exported.contains("Production"));
+        assert!(exported.contains("Staging"));
+
+        // Re-import and verify roundtrip
+        let imported = AppConfig::import_profiles(&exported).unwrap();
+        assert_eq!(imported.len(), 2);
+        assert_eq!(imported[0].name, "Production");
+        assert_eq!(imported[0].host, "ldap.example.com");
+        assert_eq!(imported[0].port, 636);
+        assert_eq!(imported[1].name, "Staging");
+        assert_eq!(imported[1].host, "ldap-staging.internal");
+    }
+
+    #[test]
+    fn test_import_profiles_empty_file() {
+        let result = AppConfig::import_profiles("# empty file\n");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No [[connections]]"));
+    }
+
+    #[test]
+    fn test_import_profiles_invalid_toml() {
+        let result = AppConfig::import_profiles("this is not valid toml {{{}}}");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_export_profiles_no_passwords() {
+        let profiles = vec![ConnectionProfile {
+            name: "Test".to_string(),
+            host: "localhost".to_string(),
+            port: 389,
+            tls_mode: TlsMode::None,
+            bind_dn: Some("cn=admin".to_string()),
+            base_dn: None,
+            credential_method: CredentialMethod::Command,
+            password_command: Some("pass show ldap".to_string()),
+            page_size: 500,
+            timeout_secs: 30,
+            relax_rules: false,
+            folder: None,
+            read_only: false,
+            offline: false,
+        }];
+
+        let exported = AppConfig::export_profiles(&profiles).unwrap();
+        // password_command is config, not a secret — it should be present
+        assert!(exported.contains("pass show ldap"));
+        // There is no password field in ConnectionProfile, so no secrets leak
+        assert!(!exported.contains("password ="));
     }
 }

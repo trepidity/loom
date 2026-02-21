@@ -347,6 +347,8 @@ impl ConnectionForm {
                     Action::None
                 }
             }
+            KeyCode::Char('x') => Action::ConnMgrExport,
+            KeyCode::Char('i') => Action::ConnMgrImport,
             _ => Action::None,
         }
     }
@@ -606,7 +608,7 @@ impl ConnectionForm {
 
         // Hints
         let hints_text = match self.mode {
-            FormMode::View => "e:Edit  c:Connect  d:Delete",
+            FormMode::View => "e:Edit  c:Connect  d:Delete  x:Export  i:Import",
             FormMode::Edit => "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel",
             FormMode::Create => {
                 "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel"

@@ -105,6 +105,8 @@ impl ConnectionsTree {
                     Action::None
                 }
             }
+            KeyCode::Char('x') => Action::ConnMgrExport,
+            KeyCode::Char('i') => Action::ConnMgrImport,
             _ => Action::None,
         }
     }
