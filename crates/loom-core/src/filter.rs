@@ -27,7 +27,7 @@ pub fn detect_attribute_context(input: &str) -> Option<String> {
     }
 
     // Strip leading boolean operators (&, |, !)
-    let partial = after_paren.trim_start_matches(|c: char| c == '&' || c == '|' || c == '!');
+    let partial = after_paren.trim_start_matches(['&', '|', '!']);
 
     Some(partial.to_string())
 }
