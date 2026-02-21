@@ -106,6 +106,14 @@ impl Default for KeybindingConfig {
     }
 }
 
+/// A folder with an optional description, persisted in config.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FolderConfig {
+    pub path: String,
+    #[serde(default)]
+    pub description: String,
+}
+
 /// Top-level application configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {
@@ -115,6 +123,8 @@ pub struct AppConfig {
     pub keybindings: KeybindingConfig,
     #[serde(default)]
     pub connections: Vec<ConnectionProfile>,
+    #[serde(default)]
+    pub folders: Vec<FolderConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -186,6 +196,15 @@ impl AppConfig {
             .map_err(|e| format!("Failed to write config: {}", e))?;
 
         Ok(())
+    }
+
+    /// Look up a folder description by path. Returns None if not found or empty.
+    pub fn folder_description(&self, path: &str) -> Option<&str> {
+        self.folders
+            .iter()
+            .find(|f| f.path == path)
+            .map(|f| f.description.as_str())
+            .filter(|d| !d.is_empty())
     }
 
     /// Update a connection profile at the given index.
@@ -457,6 +476,50 @@ host = "localhost"
     fn test_import_profiles_invalid_toml() {
         let result = AppConfig::import_profiles("this is not valid toml {{{}}}");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_folder_config_parsing() {
+        let toml = r#"
+[[connections]]
+name = "Test"
+host = "localhost"
+
+[[folders]]
+path = "Production"
+description = "Production LDAP servers"
+
+[[folders]]
+path = "Staging"
+description = ""
+"#;
+        let config = AppConfig::from_toml(toml).unwrap();
+        assert_eq!(config.folders.len(), 2);
+        assert_eq!(config.folders[0].path, "Production");
+        assert_eq!(config.folders[0].description, "Production LDAP servers");
+        assert_eq!(config.folders[1].path, "Staging");
+        assert_eq!(config.folders[1].description, "");
+    }
+
+    #[test]
+    fn test_folder_description_lookup() {
+        let config = AppConfig {
+            folders: vec![
+                FolderConfig {
+                    path: "Production".to_string(),
+                    description: "Prod servers".to_string(),
+                },
+                FolderConfig {
+                    path: "Staging".to_string(),
+                    description: String::new(),
+                },
+            ],
+            ..Default::default()
+        };
+
+        assert_eq!(config.folder_description("Production"), Some("Prod servers"));
+        assert_eq!(config.folder_description("Staging"), None); // empty => None
+        assert_eq!(config.folder_description("Nonexistent"), None);
     }
 
     #[test]

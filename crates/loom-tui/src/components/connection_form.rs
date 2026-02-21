@@ -16,6 +16,8 @@ enum FormMode {
     View,
     Edit,
     Create,
+    FolderView,
+    FolderEdit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -95,6 +97,10 @@ pub struct ConnectionForm {
     timeout: String,
     relax_rules: bool,
     read_only: bool,
+
+    // Folder view/edit fields
+    folder_path: String,
+    folder_description: String,
 }
 
 impl ConnectionForm {
@@ -149,7 +155,17 @@ impl ConnectionForm {
             timeout: "30".to_string(),
             relax_rules: false,
             read_only: false,
+            folder_path: String::new(),
+            folder_description: String::new(),
         }
+    }
+
+    /// Show folder details in the right panel.
+    pub fn view_folder(&mut self, path: &str, description: &str) {
+        self.mode = FormMode::FolderView;
+        self.profile_index = None;
+        self.folder_path = path.to_string();
+        self.folder_description = description.to_string();
     }
 
     /// Load a profile for viewing.
@@ -289,7 +305,7 @@ impl ConnectionForm {
                     }
                 }
                 FormMode::Create => Action::ConnMgrCreate(Box::new(profile)),
-                FormMode::View => Action::None,
+                FormMode::View | FormMode::FolderView | FormMode::FolderEdit => Action::None,
             },
             Err(msg) => Action::ErrorMessage(msg),
         }
@@ -313,13 +329,15 @@ impl ConnectionForm {
 
     /// Whether the form is actively being edited (Tab should stay within form).
     pub fn is_editing(&self) -> bool {
-        matches!(self.mode, FormMode::Edit | FormMode::Create)
+        matches!(self.mode, FormMode::Edit | FormMode::Create | FormMode::FolderEdit)
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) -> Action {
         match self.mode {
             FormMode::View => self.handle_view_key(key),
             FormMode::Edit | FormMode::Create => self.handle_edit_key(key),
+            FormMode::FolderView => self.handle_folder_view_key(key),
+            FormMode::FolderEdit => self.handle_folder_edit_key(key),
         }
     }
 
@@ -349,6 +367,42 @@ impl ConnectionForm {
             }
             KeyCode::Char('x') => Action::ConnMgrExport,
             KeyCode::Char('i') => Action::ConnMgrImport,
+            _ => Action::None,
+        }
+    }
+
+    fn handle_folder_view_key(&mut self, key: KeyEvent) -> Action {
+        match key.code {
+            KeyCode::Char('e') => {
+                self.mode = FormMode::FolderEdit;
+                Action::None
+            }
+            _ => Action::None,
+        }
+    }
+
+    fn handle_folder_edit_key(&mut self, key: KeyEvent) -> Action {
+        match key.code {
+            KeyCode::Esc => {
+                self.mode = FormMode::FolderView;
+                Action::None
+            }
+            KeyCode::Enter | KeyCode::F(10) => {
+                let action = Action::ConnMgrSaveFolderDesc(
+                    self.folder_path.clone(),
+                    self.folder_description.clone(),
+                );
+                self.mode = FormMode::FolderView;
+                action
+            }
+            KeyCode::Backspace => {
+                self.folder_description.pop();
+                Action::None
+            }
+            KeyCode::Char(c) => {
+                self.folder_description.push(c);
+                Action::None
+            }
             _ => Action::None,
         }
     }
@@ -461,10 +515,17 @@ impl ConnectionForm {
             self.theme.border
         };
 
+        // Folder view/edit modes have their own render path
+        if matches!(self.mode, FormMode::FolderView | FormMode::FolderEdit) {
+            self.render_folder(frame, area, focused);
+            return;
+        }
+
         let title = match self.mode {
             FormMode::View => " Profile ",
             FormMode::Edit => " Edit Profile ",
             FormMode::Create => " New Profile ",
+            FormMode::FolderView | FormMode::FolderEdit => unreachable!(),
         };
 
         let mut block = Block::default()
@@ -613,9 +674,84 @@ impl ConnectionForm {
             FormMode::Create => {
                 "Tab/\u{2191}\u{2193}:fields  F2:TLS  F3:Cred  F10:Save  Esc:Cancel"
             }
+            // FolderView/FolderEdit are handled in render_folder and never reach here
+            FormMode::FolderView | FormMode::FolderEdit => unreachable!(),
         };
         let hints = Paragraph::new(Line::from(Span::styled(hints_text, self.theme.dimmed)));
         frame.render_widget(hints, layout[13]);
+    }
+
+    fn render_folder(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        let border_style = if focused {
+            self.theme.border_focused
+        } else {
+            self.theme.border
+        };
+
+        let title = match self.mode {
+            FormMode::FolderEdit => " Edit Folder ",
+            _ => " Folder ",
+        };
+
+        let mut block = Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .border_style(border_style);
+        if focused {
+            block = block.border_type(BorderType::Double);
+        }
+
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        let editing = self.mode == FormMode::FolderEdit;
+
+        let layout = Layout::vertical([
+            Constraint::Length(2), // Folder path
+            Constraint::Length(2), // Description
+            Constraint::Min(1),   // Hints
+        ])
+        .split(inner);
+
+        // Folder path (always read-only)
+        let path_lines = vec![
+            Line::from(Span::styled("Folder:", self.theme.dimmed)),
+            Line::from(Span::styled(&self.folder_path, self.theme.normal)),
+        ];
+        frame.render_widget(Paragraph::new(path_lines), layout[0]);
+
+        // Description
+        let desc_display = if self.folder_description.is_empty() && !editing {
+            "(no description)"
+        } else {
+            &self.folder_description
+        };
+        let desc_label_style = if editing {
+            self.theme.header
+        } else {
+            self.theme.dimmed
+        };
+        let desc_lines = vec![
+            Line::from(Span::styled("Description:", desc_label_style)),
+            Line::from(vec![
+                Span::styled(desc_display, self.theme.normal),
+                if editing {
+                    Span::styled("_", self.theme.command_prompt)
+                } else {
+                    Span::raw("")
+                },
+            ]),
+        ];
+        frame.render_widget(Paragraph::new(desc_lines), layout[1]);
+
+        // Hints
+        let hints_text = if editing {
+            "Enter/F10:Save  Esc:Cancel"
+        } else {
+            "e:Edit Description"
+        };
+        let hints = Paragraph::new(Line::from(Span::styled(hints_text, self.theme.dimmed)));
+        frame.render_widget(hints, layout[2]);
     }
 
     fn render_field(

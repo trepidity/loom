@@ -26,6 +26,8 @@ pub struct ConnectionsTree {
     profile_keys: Vec<(String, usize)>,
     /// Maps tree item keys like "active:0" to the connection id
     active_keys: Vec<(String, ConnectionId)>,
+    /// Maps tree item keys like "folder:Production" to folder paths
+    folder_keys: Vec<(String, String)>,
 }
 
 impl ConnectionsTree {
@@ -35,6 +37,7 @@ impl ConnectionsTree {
             theme,
             profile_keys: Vec::new(),
             active_keys: Vec::new(),
+            folder_keys: Vec::new(),
         }
     }
 
@@ -50,6 +53,15 @@ impl ConnectionsTree {
             .iter()
             .find(|(k, _)| k == key)
             .map(|(_, idx)| *idx)
+    }
+
+    /// Get the folder path for the currently selected item, if it's a folder.
+    fn selected_folder_path(&self) -> Option<&str> {
+        let key = self.selected_key()?;
+        self.folder_keys
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, path)| path.as_str())
     }
 
     /// Get the connection id for the currently selected item, if it's an active connection.
@@ -114,6 +126,8 @@ impl ConnectionsTree {
     fn on_selection_changed(&self) -> Action {
         if let Some(idx) = self.selected_profile_index() {
             Action::ConnMgrSelect(idx)
+        } else if let Some(path) = self.selected_folder_path() {
+            Action::ConnMgrSelectFolder(path.to_string())
         } else {
             Action::None
         }
@@ -127,6 +141,7 @@ impl ConnectionsTree {
     ) -> Vec<TreeItem<'static, String>> {
         self.profile_keys.clear();
         self.active_keys.clear();
+        self.folder_keys.clear();
 
         let mut top_items: Vec<TreeItem<'static, String>> = Vec::new();
 
@@ -183,6 +198,7 @@ impl ConnectionsTree {
             if parts.len() == 1 {
                 // Simple folder
                 let folder_key = format!("folder:{}", folder_path);
+                self.folder_keys.push((folder_key.clone(), folder_path.clone()));
                 let folder_item = TreeItem::new(folder_key, leaf_folder.to_string(), children)
                     .expect("tree item");
                 top_items.push(folder_item);
@@ -191,6 +207,7 @@ impl ConnectionsTree {
                 let top_key = parts[0].to_string();
                 let sub_key = parts[1..].join("/");
                 let sub_folder_key = format!("folder:{}", folder_path);
+                self.folder_keys.push((sub_folder_key.clone(), folder_path.clone()));
                 let sub_item =
                     TreeItem::new(sub_folder_key, sub_key.clone(), children).expect("tree item");
                 folder_tree.entry(top_key).or_default().push(sub_item);
@@ -200,6 +217,7 @@ impl ConnectionsTree {
         // Merge nested folder groups
         for (top_name, sub_items) in folder_tree {
             let folder_key = format!("folder:{}", top_name);
+            self.folder_keys.push((folder_key.clone(), top_name.clone()));
             let folder_item = TreeItem::new(folder_key, top_name, sub_items).expect("tree item");
             top_items.push(folder_item);
         }

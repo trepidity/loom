@@ -1617,6 +1617,32 @@ impl App {
                 }
             }
 
+            Action::ConnMgrSelectFolder(path) => {
+                let desc = self.config.folder_description(&path)
+                    .unwrap_or_default()
+                    .to_string();
+                self.connection_form.view_folder(&path, &desc);
+            }
+            Action::ConnMgrSaveFolderDesc(path, description) => {
+                // Update or insert the folder config
+                if let Some(existing) = self.config.folders.iter_mut().find(|f| f.path == path) {
+                    existing.description = description.clone();
+                } else {
+                    self.config.folders.push(crate::config::FolderConfig {
+                        path: path.clone(),
+                        description: description.clone(),
+                    });
+                }
+                if let Err(e) = self.config.save() {
+                    self.command_panel
+                        .push_error(format!("Failed to save config: {}", e));
+                } else {
+                    self.command_panel
+                        .push_message("Folder description saved".to_string());
+                }
+                self.connection_form.view_folder(&path, &description);
+            }
+
             Action::CloseTab(id) => {
                 self.tabs.retain(|t| t.id != id);
                 self.tab_bar.remove_tab(id);
