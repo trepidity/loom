@@ -38,7 +38,7 @@ impl LdapConnection {
     ) -> Result<BulkResult, CoreError> {
         // First, find all matching entries
         let base_dn = self.base_dn.clone();
-        let entries = self.search_subtree(&base_dn, filter, vec!["dn"]).await?;
+        let entries = self.search_subtree(&base_dn, filter, &["dn"]).await?;
 
         let total = entries.len();
         info!("Bulk update: {} entries match filter '{}'", total, filter);

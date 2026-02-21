@@ -29,8 +29,6 @@ pub fn parse_key(s: &str) -> Result<(KeyModifiers, KeyCode), String> {
     let code = match key_name.to_lowercase().as_str() {
         "tab" => {
             if modifiers.contains(KeyModifiers::SHIFT) {
-                modifiers -= KeyModifiers::SHIFT;
-                modifiers |= KeyModifiers::SHIFT;
                 KeyCode::BackTab
             } else {
                 KeyCode::Tab

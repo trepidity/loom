@@ -8,7 +8,7 @@ use crate::error::CoreError;
 impl LdapConnection {
     /// Search for immediate children of the given DN.
     pub async fn search_children(&mut self, parent_dn: &str) -> Result<Vec<LdapEntry>, CoreError> {
-        self.search(parent_dn, Scope::OneLevel, "(objectClass=*)", vec!["*"])
+        self.search(parent_dn, Scope::OneLevel, "(objectClass=*)", &["*"])
             .await
     }
 
@@ -17,7 +17,7 @@ impl LdapConnection {
     /// to avoid displaying non-modifiable server-internal attributes.
     pub async fn search_entry(&mut self, dn: &str) -> Result<Option<LdapEntry>, CoreError> {
         let results = self
-            .search(dn, Scope::Base, "(objectClass=*)", vec!["*"])
+            .search(dn, Scope::Base, "(objectClass=*)", &["*"])
             .await?;
         Ok(results.into_iter().next())
     }
@@ -27,7 +27,7 @@ impl LdapConnection {
         &mut self,
         base_dn: &str,
         filter: &str,
-        attrs: Vec<&str>,
+        attrs: &[&str],
     ) -> Result<Vec<LdapEntry>, CoreError> {
         self.search(base_dn, Scope::Subtree, filter, attrs).await
     }
@@ -39,7 +39,7 @@ impl LdapConnection {
         &mut self,
         base_dn: &str,
         filter: &str,
-        attrs: Vec<&str>,
+        attrs: &[&str],
         limit: usize,
     ) -> Result<Vec<LdapEntry>, CoreError> {
         let controls = vec![ldap3::controls::RawControl {
@@ -51,7 +51,7 @@ impl LdapConnection {
         let result = self
             .ldap
             .with_controls(controls)
-            .search(base_dn, Scope::Subtree, filter, attrs)
+            .search(base_dn, Scope::Subtree, filter, attrs.to_vec())
             .await
             .map_err(CoreError::Ldap)?;
 
@@ -79,7 +79,7 @@ impl LdapConnection {
         base_dn: &str,
         scope: Scope,
         filter: &str,
-        attrs: Vec<&str>,
+        attrs: &[&str],
     ) -> Result<Vec<LdapEntry>, CoreError> {
         let page_size = self.settings.page_size;
         let mut all_entries = Vec::new();
@@ -95,7 +95,7 @@ impl LdapConnection {
             let result = self
                 .ldap
                 .with_controls(controls)
-                .search(base_dn, scope, filter, attrs.clone())
+                .search(base_dn, scope, filter, attrs.to_vec())
                 .await
                 .map_err(CoreError::Ldap)?;
 
@@ -191,10 +191,10 @@ fn ber_encode_integer(val: i64) -> Vec<u8> {
     loop {
         bytes.push((v & 0xFF) as u8);
         v >>= 8;
-        if v == 0 && (bytes.last().unwrap() & 0x80) == 0 {
+        if v == 0 && (bytes[bytes.len() - 1] & 0x80) == 0 {
             break;
         }
-        if v == -1 && (bytes.last().unwrap() & 0x80) != 0 {
+        if v == -1 && (bytes[bytes.len() - 1] & 0x80) != 0 {
             break;
         }
     }

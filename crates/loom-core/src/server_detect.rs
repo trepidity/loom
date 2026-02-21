@@ -7,6 +7,7 @@ use tracing::debug;
 
 use crate::connection::LdapConnection;
 use crate::error::CoreError;
+use crate::util::{get_first, get_values, has_attr};
 
 /// Known LDAP server types.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Display)]
@@ -181,28 +182,6 @@ fn detect_server_type(
     }
 
     ServerType::Unknown("Unknown LDAP server".to_string())
-}
-
-/// Get all values for an attribute (case-insensitive key lookup).
-fn get_values(attrs: &BTreeMap<String, Vec<String>>, key: &str) -> Vec<String> {
-    let key_lower = key.to_lowercase();
-    for (k, v) in attrs {
-        if k.to_lowercase() == key_lower {
-            return v.clone();
-        }
-    }
-    Vec::new()
-}
-
-/// Get the first value for an attribute (case-insensitive).
-fn get_first(attrs: &BTreeMap<String, Vec<String>>, key: &str) -> Option<String> {
-    get_values(attrs, key).into_iter().next()
-}
-
-/// Check if an attribute exists (case-insensitive).
-fn has_attr(attrs: &BTreeMap<String, Vec<String>>, key: &str) -> bool {
-    let key_lower = key.to_lowercase();
-    attrs.keys().any(|k| k.to_lowercase() == key_lower)
 }
 
 #[cfg(test)]

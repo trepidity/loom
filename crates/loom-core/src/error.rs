@@ -14,6 +14,12 @@ pub enum CoreError {
     #[error("modify failed: {0}")]
     ModifyFailed(String),
 
+    #[error("add failed: {0}")]
+    AddFailed(String),
+
+    #[error("delete failed: {0}")]
+    DeleteFailed(String),
+
     #[error("schema error: {0}")]
     SchemaError(String),
 

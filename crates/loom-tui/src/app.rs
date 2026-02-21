@@ -76,8 +76,6 @@ struct ConnectionTab {
 /// The main application.
 pub struct App {
     config: AppConfig,
-    #[allow(dead_code)]
-    theme: Theme,
     should_quit: bool,
     next_conn_id: ConnectionId,
 
@@ -151,7 +149,6 @@ impl App {
 
         Self {
             config,
-            theme: theme.clone(),
             should_quit: false,
             next_conn_id: 0,
             active_layout: ActiveLayout::Browser,
@@ -479,13 +476,13 @@ impl App {
                     let connection = connection.clone();
                     tokio::spawn(async move {
                         let mut conn = connection.lock().await;
-                        let result = match conn.search_subtree(&base_dn, &filter, vec!["*"]).await {
+                        let result = match conn.search_subtree(&base_dn, &filter, &["*"]).await {
                             Ok(entries) => Ok(entries),
                             Err(e) if LdapConnection::is_connection_error(&e) => {
                                 let _ =
                                     tx.send(Action::StatusMessage("Reconnecting...".to_string()));
                                 if conn.reconnect().await.is_ok() {
-                                    conn.search_subtree(&base_dn, &filter, vec!["*"]).await
+                                    conn.search_subtree(&base_dn, &filter, &["*"]).await
                                 } else {
                                     Err(e)
                                 }
@@ -667,7 +664,7 @@ impl App {
                     tokio::spawn(async move {
                         let mut conn = connection.lock().await;
                         let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
-                        match conn.search_subtree(&base_dn, &filter, attr_refs).await {
+                        match conn.search_subtree(&base_dn, &filter, &attr_refs).await {
                             Ok(entries) => {
                                 match loom_core::export::export_entries(
                                     &entries,
@@ -859,7 +856,7 @@ impl App {
                     tokio::spawn(async move {
                         let mut conn = connection.lock().await;
                         let result = match conn
-                            .search_limited(&base_dn, &query, vec!["cn", "uid", "sn"], 50)
+                            .search_limited(&base_dn, &query, &["cn", "uid", "sn"], 50)
                             .await
                         {
                             Ok(entries) => Ok(entries),
@@ -868,7 +865,7 @@ impl App {
                                     conn.search_limited(
                                         &base_dn,
                                         &query,
-                                        vec!["cn", "uid", "sn"],
+                                        &["cn", "uid", "sn"],
                                         50,
                                     )
                                     .await
@@ -972,6 +969,28 @@ impl App {
             || self.log_panel.visible
     }
 
+    /// Check if any popup, dialog, or text-input mode is active.
+    fn any_popup_or_input_active(&self) -> bool {
+        self.context_menu.visible
+            || self.attribute_editor.visible
+            || self.attribute_picker.visible
+            || self.confirm_dialog.visible
+            || self.connect_dialog.visible
+            || self.new_connection_dialog.visible
+            || self.credential_prompt.visible
+            || self.search_dialog.visible
+            || self.export_dialog.visible
+            || self.bulk_update_dialog.visible
+            || self.create_entry_dialog.visible
+            || self.schema_viewer.visible
+            || self.help_popup.visible
+            || self.log_panel.visible
+            || self.command_panel.input_active
+            || (self.connection_form.is_editing()
+                && self.active_layout == ActiveLayout::Profiles
+                && self.focus.current() == FocusTarget::ConnectionForm)
+    }
+
     /// Dismiss every open popup/dialog.
     fn dismiss_all_popups(&mut self) {
         self.context_menu.hide();
@@ -1005,12 +1024,14 @@ impl App {
             if let Some(app_event) = event::poll_event(tick_rate) {
                 match app_event {
                     AppEvent::Key(key) => {
-                        // Search binding is truly global — it works from any context,
-                        // dismissing any open popups/dialogs first.
-                        let action = if matches!(
-                            self.keymap.resolve_global_only(&key),
-                            Action::SearchFocusInput
-                        ) {
+                        // Search binding activates search from any non-input context,
+                        // but yields to dialogs/popups/editors that capture keystrokes.
+                        let action = if !self.any_popup_or_input_active()
+                            && matches!(
+                                self.keymap.resolve_global_only(&key),
+                                Action::SearchFocusInput
+                            )
+                        {
                             self.dismiss_all_popups();
                             self.command_panel.deactivate_input();
                             if self.active_layout != ActiveLayout::Browser {

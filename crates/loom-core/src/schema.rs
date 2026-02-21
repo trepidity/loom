@@ -6,6 +6,7 @@ use tracing::{debug, warn};
 
 use crate::connection::LdapConnection;
 use crate::error::CoreError;
+use crate::util::find_values_ci;
 
 /// Known LDAP attribute syntaxes mapped to friendly types.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -253,20 +254,6 @@ impl LdapConnection {
     }
 }
 
-/// Case-insensitive attribute lookup.
-fn find_values_ci<'a>(
-    attrs: &'a BTreeMap<String, Vec<String>>,
-    key: &str,
-) -> Option<&'a Vec<String>> {
-    let key_lower = key.to_lowercase();
-    for (k, v) in attrs {
-        if k.to_lowercase() == key_lower {
-            return Some(v);
-        }
-    }
-    None
-}
-
 /// Parse an LDAP attributeType schema definition string.
 /// Format: ( OID NAME 'name' DESC 'desc' SYNTAX oid SINGLE-VALUE ... )
 fn parse_attribute_type(def: &str) -> Option<AttributeTypeInfo> {
@@ -378,7 +365,7 @@ fn parse_unquoted_field(s: &str, keyword: &str) -> Option<String> {
         let val: String = rest
             .split_whitespace()
             .next()?
-            .trim_matches(|c| c == '{' || c == '}')
+            .trim_matches(['{', '}'])
             .to_string();
         if !val.is_empty() {
             return Some(val);

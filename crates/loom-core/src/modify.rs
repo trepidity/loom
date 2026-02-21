@@ -155,7 +155,7 @@ impl LdapConnection {
         debug!("add_entry result rc={} text={}", result.rc, result.text);
 
         if result.rc != 0 {
-            return Err(CoreError::ModifyFailed(format!(
+            return Err(CoreError::AddFailed(format!(
                 "Add {} failed rc={}: {}",
                 dn, result.rc, result.text
             )));
@@ -185,7 +185,7 @@ impl LdapConnection {
         debug!("delete_entry result rc={} text={}", result.rc, result.text);
 
         if result.rc != 0 {
-            return Err(CoreError::ModifyFailed(format!(
+            return Err(CoreError::DeleteFailed(format!(
                 "Delete {} failed rc={}: {}",
                 dn, result.rc, result.text
             )));
