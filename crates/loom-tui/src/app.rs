@@ -862,13 +862,8 @@ impl App {
                             Ok(entries) => Ok(entries),
                             Err(e) if LdapConnection::is_connection_error(&e) => {
                                 if conn.reconnect().await.is_ok() {
-                                    conn.search_limited(
-                                        &base_dn,
-                                        &query,
-                                        &["cn", "uid", "sn"],
-                                        50,
-                                    )
-                                    .await
+                                    conn.search_limited(&base_dn, &query, &["cn", "uid", "sn"], 50)
+                                        .await
                                 } else {
                                     Err(e)
                                 }
@@ -1030,8 +1025,7 @@ impl App {
                             && matches!(
                                 self.keymap.resolve_global_only(&key),
                                 Action::SearchFocusInput
-                            )
-                        {
+                            ) {
                             self.dismiss_all_popups();
                             self.command_panel.deactivate_input();
                             if self.active_layout != ActiveLayout::Browser {
