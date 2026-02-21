@@ -63,6 +63,36 @@ pub struct NewConnectionDialog {
 }
 
 impl NewConnectionDialog {
+    /// If the host field contains a URL like `ldaps://host:636`, parse it
+    /// and populate the host, port, and TLS mode fields accordingly.
+    fn try_parse_host_url(&mut self) {
+        let raw = self.host.trim().to_string();
+        if let Some((scheme, rest)) = raw.split_once("://") {
+            let scheme_lower = scheme.to_ascii_lowercase();
+            match scheme_lower.as_str() {
+                "ldap" => self.tls_mode = TlsMode::None,
+                "ldaps" => self.tls_mode = TlsMode::Ldaps,
+                _ => return,
+            }
+            let authority = rest.split('/').next().unwrap_or(rest);
+            if let Some((host, port_str)) = authority.rsplit_once(':') {
+                if let Ok(port) = port_str.parse::<u16>() {
+                    self.host = host.to_string();
+                    self.port = port.to_string();
+                } else {
+                    self.host = authority.to_string();
+                }
+            } else {
+                self.host = authority.to_string();
+                match scheme_lower.as_str() {
+                    "ldap" => self.port = "389".to_string(),
+                    "ldaps" => self.port = "636".to_string(),
+                    _ => {}
+                }
+            }
+        }
+    }
+
     pub fn new(theme: Theme) -> Self {
         Self {
             visible: false,
@@ -104,10 +134,16 @@ impl NewConnectionDialog {
                 Action::ClosePopup
             }
             KeyCode::Tab => {
+                if self.active_field == Field::Host {
+                    self.try_parse_host_url();
+                }
                 self.active_field = self.active_field.next();
                 Action::None
             }
             KeyCode::BackTab => {
+                if self.active_field == Field::Host {
+                    self.try_parse_host_url();
+                }
                 self.active_field = self.active_field.prev();
                 Action::None
             }
@@ -133,6 +169,7 @@ impl NewConnectionDialog {
     }
 
     fn submit(&mut self) -> Action {
+        self.try_parse_host_url();
         // Validate host
         if self.host.trim().is_empty() {
             return Action::ErrorMessage("Host is required".to_string());

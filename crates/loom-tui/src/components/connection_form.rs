@@ -98,6 +98,38 @@ pub struct ConnectionForm {
 }
 
 impl ConnectionForm {
+    /// If the host field contains a URL like `ldaps://host:636`, parse it
+    /// and populate the host, port, and TLS mode fields accordingly.
+    fn try_parse_host_url(&mut self) {
+        let raw = self.host.trim().to_string();
+        if let Some((scheme, rest)) = raw.split_once("://") {
+            let scheme_lower = scheme.to_ascii_lowercase();
+            match scheme_lower.as_str() {
+                "ldap" => self.tls_mode = TlsMode::None,
+                "ldaps" => self.tls_mode = TlsMode::Ldaps,
+                _ => return, // unknown scheme, leave as-is
+            }
+            // rest is "host" or "host:port" (possibly with trailing slash/path)
+            let authority = rest.split('/').next().unwrap_or(rest);
+            if let Some((host, port_str)) = authority.rsplit_once(':') {
+                if let Ok(port) = port_str.parse::<u16>() {
+                    self.host = host.to_string();
+                    self.port = port.to_string();
+                } else {
+                    self.host = authority.to_string();
+                }
+            } else {
+                self.host = authority.to_string();
+                // Set default port for the scheme
+                match scheme_lower.as_str() {
+                    "ldap" => self.port = "389".to_string(),
+                    "ldaps" => self.port = "636".to_string(),
+                    _ => {}
+                }
+            }
+        }
+    }
+
     pub fn new(theme: Theme) -> Self {
         Self {
             mode: FormMode::View,
@@ -246,6 +278,7 @@ impl ConnectionForm {
     }
 
     fn submit(&mut self) -> Action {
+        self.try_parse_host_url();
         match self.to_profile() {
             Ok(profile) => match self.mode {
                 FormMode::Edit => {
@@ -332,10 +365,16 @@ impl ConnectionForm {
                 Action::None
             }
             (KeyModifiers::NONE, KeyCode::Tab) | (KeyModifiers::NONE, KeyCode::Down) => {
+                if self.active_field == Field::Host {
+                    self.try_parse_host_url();
+                }
                 self.active_field = self.active_field.next();
                 Action::None
             }
             (KeyModifiers::SHIFT, KeyCode::BackTab) | (KeyModifiers::NONE, KeyCode::Up) => {
+                if self.active_field == Field::Host {
+                    self.try_parse_host_url();
+                }
                 self.active_field = self.active_field.prev();
                 Action::None
             }
