@@ -73,7 +73,7 @@ impl AboutPopup {
             Line::from(""),
             Line::from(vec![
                 Span::styled("  Author:  ", self.theme.dimmed),
-                Span::styled("Jared Hendrickson", self.theme.normal),
+                Span::styled("Jared Jennings", self.theme.normal),
             ]),
             Line::from(vec![
                 Span::styled("  License: ", self.theme.dimmed),

@@ -86,6 +86,17 @@ impl DetailPanel {
                 }
                 Action::None
             }
+            KeyCode::PageUp => {
+                let i = self.table_state.selected().unwrap_or(0);
+                self.table_state.select(Some(i.saturating_sub(10)));
+                Action::None
+            }
+            KeyCode::PageDown => {
+                let i = self.table_state.selected().unwrap_or(0);
+                let max = self.rows.len().saturating_sub(1);
+                self.table_state.select(Some((i + 10).min(max)));
+                Action::None
+            }
             KeyCode::Char('e') => {
                 // Edit the selected attribute value
                 if let (Some(entry), Some((attr, val))) = (&self.entry, self.selected_attr_value())

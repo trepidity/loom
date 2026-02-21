@@ -81,6 +81,26 @@ impl TreePanel {
                     Action::None
                 }
             }
+            KeyCode::PageUp => {
+                self.tree_state.select_relative(|current| {
+                    current.map_or(0, |c| c.saturating_sub(10))
+                });
+                if let Some(dn) = self.selected_dn().cloned() {
+                    Action::TreeSelect(dn)
+                } else {
+                    Action::None
+                }
+            }
+            KeyCode::PageDown => {
+                self.tree_state.select_relative(|current| {
+                    current.map_or(0, |c| c.saturating_add(10))
+                });
+                if let Some(dn) = self.selected_dn().cloned() {
+                    Action::TreeSelect(dn)
+                } else {
+                    Action::None
+                }
+            }
             KeyCode::Char('a') => {
                 if let Some(dn) = self.selected_dn().cloned() {
                     Action::ShowCreateEntryDialog(dn)
