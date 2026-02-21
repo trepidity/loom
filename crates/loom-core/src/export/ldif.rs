@@ -7,7 +7,11 @@ use crate::error::CoreError;
 use super::requested_attrs;
 
 /// Export entries to LDIF format (RFC 2849).
-pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
+pub fn export(
+    entries: &[LdapEntry],
+    path: &Path,
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     let file = std::fs::File::create(path)
         .map_err(|e| CoreError::ExportError(format!("Failed to create file: {}", e)))?;
     let mut writer = std::io::BufWriter::new(file);
@@ -16,7 +20,11 @@ pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Resu
 }
 
 /// Write entries in LDIF format to any writer.
-pub fn write_ldif<W: Write>(writer: &mut W, entries: &[LdapEntry], attributes: &[String]) -> Result<usize, CoreError> {
+pub fn write_ldif<W: Write>(
+    writer: &mut W,
+    entries: &[LdapEntry],
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     let filtered = requested_attrs(attributes);
     let mut count = 0;
 

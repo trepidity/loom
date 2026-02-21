@@ -25,7 +25,11 @@ fn filter_entries(entries: &[LdapEntry], attributes: &[String]) -> Vec<LdapEntry
 }
 
 /// Export entries to JSON format (array of entry objects).
-pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
+pub fn export(
+    entries: &[LdapEntry],
+    path: &Path,
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     let filtered = filter_entries(entries, attributes);
     let json = serde_json::to_string_pretty(&filtered)
         .map_err(|e| CoreError::ExportError(format!("JSON serialization failed: {}", e)))?;

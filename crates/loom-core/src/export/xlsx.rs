@@ -9,7 +9,11 @@ use crate::error::CoreError;
 use super::requested_attrs;
 
 /// Export entries to Excel (.xlsx) format.
-pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
+pub fn export(
+    entries: &[LdapEntry],
+    path: &Path,
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     if entries.is_empty() {
         return Ok(0);
     }

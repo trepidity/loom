@@ -10,7 +10,11 @@ use super::requested_attrs;
 ///
 /// Columns: dn, then all unique attribute names sorted alphabetically.
 /// Multi-valued attributes are joined with "; ".
-pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
+pub fn export(
+    entries: &[LdapEntry],
+    path: &Path,
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     let file = std::fs::File::create(path)
         .map_err(|e| CoreError::ExportError(format!("Failed to create file: {}", e)))?;
     let writer = std::io::BufWriter::new(file);
@@ -19,7 +23,11 @@ pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Resu
 }
 
 /// Write entries in CSV format to any writer.
-pub fn write_csv<W: std::io::Write>(writer: W, entries: &[LdapEntry], attributes: &[String]) -> Result<usize, CoreError> {
+pub fn write_csv<W: std::io::Write>(
+    writer: W,
+    entries: &[LdapEntry],
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     if entries.is_empty() {
         return Ok(0);
     }
@@ -152,7 +160,10 @@ mod tests {
         // Header should be dn,mail,cn (user-specified order)
         assert_eq!(lines[0], "dn,mail,cn");
         // Alice has both (DN contains commas so CSV quotes it)
-        assert_eq!(lines[1], "\"cn=Alice,dc=example,dc=com\",alice@example.com,Alice");
+        assert_eq!(
+            lines[1],
+            "\"cn=Alice,dc=example,dc=com\",alice@example.com,Alice"
+        );
         // Bob has no mail → empty cell
         assert_eq!(lines[2], "\"cn=Bob,dc=example,dc=com\",,Bob");
     }

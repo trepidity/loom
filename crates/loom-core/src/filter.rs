@@ -74,7 +74,10 @@ fn parse_filter(input: &[u8], pos: usize) -> Result<usize, String> {
 
     let inner = pos + 1;
     if inner >= input.len() {
-        return Err(format!("Unexpected end of filter after '(' at position {}", pos + 1));
+        return Err(format!(
+            "Unexpected end of filter after '(' at position {}",
+            pos + 1
+        ));
     }
 
     let end = match input[inner] {
@@ -159,8 +162,7 @@ fn parse_item(input: &[u8], pos: usize) -> Result<usize, String> {
             }
             _ => {
                 return Err(
-                    "Expected comparison operator (=, ~=, >=, <=) after attribute name"
-                        .to_string(),
+                    "Expected comparison operator (=, ~=, >=, <=) after attribute name".to_string(),
                 );
             }
         }
@@ -250,11 +252,7 @@ mod tests {
     #[test]
     fn test_error_missing_operator() {
         let err = validate_filter("(cn)").unwrap_err();
-        assert!(
-            err.contains("comparison operator"),
-            "got: {}",
-            err
-        );
+        assert!(err.contains("comparison operator"), "got: {}", err);
     }
 
     #[test]
@@ -336,10 +334,7 @@ mod tests {
 
     #[test]
     fn test_context_after_not() {
-        assert_eq!(
-            detect_attribute_context("(!(mem"),
-            Some("mem".to_string())
-        );
+        assert_eq!(detect_attribute_context("(!(mem"), Some("mem".to_string()));
     }
 
     #[test]

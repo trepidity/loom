@@ -328,8 +328,10 @@ impl App {
 
         let read_only = profile.read_only;
         let ro_suffix = if read_only { " (read-only)" } else { "" };
-        self.command_panel
-            .push_message(format!("Connected to {} (base: {}){}", host, base_dn, ro_suffix));
+        self.command_panel.push_message(format!(
+            "Connected to {} (base: {}){}",
+            host, base_dn, ro_suffix
+        ));
         self.status_bar.set_connected(&host, &server_type_str);
 
         let connection = Arc::new(Mutex::new(conn));
@@ -615,8 +617,9 @@ impl App {
 
         if let Some(parent) = expanded.parent() {
             if !parent.as_os_str().is_empty() && !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    format!("Failed to create directory {}: {}", parent.display(), e)
+                })?;
             }
         }
 
@@ -666,7 +669,11 @@ impl App {
                         let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
                         match conn.search_subtree(&base_dn, &filter, attr_refs).await {
                             Ok(entries) => {
-                                match loom_core::export::export_entries(&entries, &filepath, &attributes) {
+                                match loom_core::export::export_entries(
+                                    &entries,
+                                    &filepath,
+                                    &attributes,
+                                ) {
                                     Ok(count) => {
                                         let _ = tx.send(Action::ExportComplete(format!(
                                             "Exported {} entries to {}",

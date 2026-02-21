@@ -129,7 +129,11 @@ impl DetailPanel {
                 {
                     let row = self.rows.get(self.table_state.selected().unwrap_or(0));
                     if row.map(|r| r.kind) != Some(AttrKind::Operational) {
-                        let msg = format!("Delete value '{}' from '{}'?", flatten_for_message(val), attr);
+                        let msg = format!(
+                            "Delete value '{}' from '{}'?",
+                            flatten_for_message(val),
+                            attr
+                        );
                         return Action::ShowConfirm(
                             msg,
                             Box::new(Action::DeleteAttributeValue(
