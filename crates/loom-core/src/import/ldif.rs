@@ -163,8 +163,9 @@ sn: Jones
             ]),
         )];
 
+        let star = vec!["*".to_string()];
         let mut buf = Vec::new();
-        crate::export::ldif::write_ldif(&mut buf, &entries).unwrap();
+        crate::export::ldif::write_ldif(&mut buf, &entries, &star).unwrap();
         let ldif_str = String::from_utf8(buf).unwrap();
 
         let reimported = parse_ldif(&ldif_str).unwrap();

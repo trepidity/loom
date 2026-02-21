@@ -6,8 +6,10 @@ use rust_xlsxwriter::{Format, Workbook};
 use crate::entry::LdapEntry;
 use crate::error::CoreError;
 
+use super::requested_attrs;
+
 /// Export entries to Excel (.xlsx) format.
-pub fn export(entries: &[LdapEntry], path: &Path) -> Result<usize, CoreError> {
+pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
     if entries.is_empty() {
         return Ok(0);
     }
@@ -19,14 +21,17 @@ pub fn export(entries: &[LdapEntry], path: &Path) -> Result<usize, CoreError> {
         .set_name("LDAP Entries")
         .map_err(|e| CoreError::ExportError(format!("Excel error: {}", e)))?;
 
-    // Collect all unique attribute names
-    let mut all_attrs: BTreeSet<String> = BTreeSet::new();
-    for entry in entries {
-        for key in entry.attributes.keys() {
-            all_attrs.insert(key.clone());
+    let attr_names: Vec<String> = if let Some(attrs) = requested_attrs(attributes) {
+        attrs.to_vec()
+    } else {
+        let mut all_attrs: BTreeSet<String> = BTreeSet::new();
+        for entry in entries {
+            for key in entry.attributes.keys() {
+                all_attrs.insert(key.clone());
+            }
         }
-    }
-    let attr_names: Vec<String> = all_attrs.into_iter().collect();
+        all_attrs.into_iter().collect()
+    };
 
     let header_format = Format::new().set_bold();
 

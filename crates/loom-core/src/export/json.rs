@@ -1,11 +1,33 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::entry::LdapEntry;
 use crate::error::CoreError;
 
+use super::requested_attrs;
+
+/// Filter entries to include only the requested attributes.
+fn filter_entries(entries: &[LdapEntry], attributes: &[String]) -> Vec<LdapEntry> {
+    if let Some(attrs) = requested_attrs(attributes) {
+        entries
+            .iter()
+            .map(|entry| {
+                let filtered: BTreeMap<String, Vec<String>> = attrs
+                    .iter()
+                    .filter_map(|a| entry.attributes.get(a).map(|v| (a.clone(), v.clone())))
+                    .collect();
+                LdapEntry::new(entry.dn.clone(), filtered)
+            })
+            .collect()
+    } else {
+        entries.to_vec()
+    }
+}
+
 /// Export entries to JSON format (array of entry objects).
-pub fn export(entries: &[LdapEntry], path: &Path) -> Result<usize, CoreError> {
-    let json = serde_json::to_string_pretty(entries)
+pub fn export(entries: &[LdapEntry], path: &Path, attributes: &[String]) -> Result<usize, CoreError> {
+    let filtered = filter_entries(entries, attributes);
+    let json = serde_json::to_string_pretty(&filtered)
         .map_err(|e| CoreError::ExportError(format!("JSON serialization failed: {}", e)))?;
 
     std::fs::write(path, json)
@@ -15,8 +37,9 @@ pub fn export(entries: &[LdapEntry], path: &Path) -> Result<usize, CoreError> {
 }
 
 /// Serialize entries to a JSON string.
-pub fn to_string(entries: &[LdapEntry]) -> Result<String, CoreError> {
-    serde_json::to_string_pretty(entries)
+pub fn to_string(entries: &[LdapEntry], attributes: &[String]) -> Result<String, CoreError> {
+    let filtered = filter_entries(entries, attributes);
+    serde_json::to_string_pretty(&filtered)
         .map_err(|e| CoreError::ExportError(format!("JSON serialization failed: {}", e)))
 }
 
@@ -35,7 +58,8 @@ mod tests {
             ]),
         )];
 
-        let json = to_string(&entries).unwrap();
+        let star = vec!["*".to_string()];
+        let json = to_string(&entries, &star).unwrap();
         assert!(json.contains("cn=Test,dc=example,dc=com"));
 
         let parsed: Vec<LdapEntry> = serde_json::from_str(&json).unwrap();

@@ -30,16 +30,34 @@ impl ExportFormat {
     }
 }
 
+/// If `attributes` contains only `"*"`, return `None` (meaning all attributes,
+/// alphabetical order). Otherwise return the explicit list.
+pub fn requested_attrs(attributes: &[String]) -> Option<&[String]> {
+    if attributes.len() == 1 && attributes[0] == "*" {
+        None
+    } else {
+        Some(attributes)
+    }
+}
+
 /// Export entries to a file, auto-detecting format from extension.
-pub fn export_entries(entries: &[LdapEntry], path: &Path) -> Result<usize, CoreError> {
+///
+/// `attributes` controls which attributes appear and in what order:
+/// - `["*"]` → all attributes, alphabetical order
+/// - `["cn", "sn", "mail"]` → exactly those attributes, in that order
+pub fn export_entries(
+    entries: &[LdapEntry],
+    path: &Path,
+    attributes: &[String],
+) -> Result<usize, CoreError> {
     let format = ExportFormat::from_path(path)
         .ok_or_else(|| CoreError::ExportError("Unknown file extension".to_string()))?;
 
     match format {
-        ExportFormat::Ldif => ldif::export(entries, path),
-        ExportFormat::Json => json::export(entries, path),
-        ExportFormat::Csv => csv::export(entries, path),
-        ExportFormat::Xlsx => xlsx::export(entries, path),
+        ExportFormat::Ldif => ldif::export(entries, path, attributes),
+        ExportFormat::Json => json::export(entries, path, attributes),
+        ExportFormat::Csv => csv::export(entries, path, attributes),
+        ExportFormat::Xlsx => xlsx::export(entries, path, attributes),
     }
 }
 

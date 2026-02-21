@@ -100,8 +100,9 @@ mod tests {
             ]),
         )];
 
+        let star = vec!["*".to_string()];
         let mut buf = Vec::new();
-        crate::export::csv::write_csv(&mut buf, &entries).unwrap();
+        crate::export::csv::write_csv(&mut buf, &entries, &star).unwrap();
         let csv_str = String::from_utf8(buf).unwrap();
 
         let reimported = parse_csv(&csv_str).unwrap();

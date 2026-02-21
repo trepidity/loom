@@ -65,8 +65,9 @@ fn test_ldif_roundtrip_with_fixtures() {
     ));
     let entries = import::ldif::import(path).unwrap();
 
+    let star = vec!["*".to_string()];
     let mut buf = Vec::new();
-    export::ldif::write_ldif(&mut buf, &entries).unwrap();
+    export::ldif::write_ldif(&mut buf, &entries, &star).unwrap();
     let ldif_str = String::from_utf8(buf).unwrap();
 
     let reimported = import::ldif::parse_ldif(&ldif_str).unwrap();
@@ -86,7 +87,8 @@ fn test_json_roundtrip_with_fixtures() {
     ));
     let entries = import::json::import(path).unwrap();
 
-    let json_str = export::json::to_string(&entries).unwrap();
+    let star = vec!["*".to_string()];
+    let json_str = export::json::to_string(&entries, &star).unwrap();
 
     let reimported = import::json::parse_json(&json_str).unwrap();
     assert_eq!(reimported.len(), entries.len());
@@ -104,8 +106,9 @@ fn test_csv_roundtrip_with_fixtures() {
     ));
     let entries = import::csv::import(path).unwrap();
 
+    let star = vec!["*".to_string()];
     let mut buf = Vec::new();
-    export::csv::write_csv(&mut buf, &entries).unwrap();
+    export::csv::write_csv(&mut buf, &entries, &star).unwrap();
     let csv_str = String::from_utf8(buf).unwrap();
 
     let reimported = import::csv::parse_csv(&csv_str).unwrap();
@@ -124,7 +127,8 @@ fn test_cross_format_ldif_to_json() {
     ));
     let entries = import::ldif::import(path).unwrap();
 
-    let json_str = export::json::to_string(&entries).unwrap();
+    let star = vec!["*".to_string()];
+    let json_str = export::json::to_string(&entries, &star).unwrap();
     let reimported = import::json::parse_json(&json_str).unwrap();
 
     assert_eq!(reimported.len(), entries.len());

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -596,27 +597,61 @@ impl App {
         }
     }
 
+    /// Expand a user-provided file path:
+    /// - Replace leading `~` with the user's home directory
+    /// - Create parent directories if they don't exist
+    fn expand_export_path(raw: &str) -> Result<PathBuf, String> {
+        let expanded = if raw.starts_with("~/") || raw.starts_with("~\\") {
+            if let Some(home) = dirs::home_dir() {
+                home.join(&raw[2..])
+            } else {
+                return Err("Could not determine home directory".to_string());
+            }
+        } else if raw == "~" {
+            return Err("Filename is required, not just '~'".to_string());
+        } else {
+            PathBuf::from(raw)
+        };
+
+        if let Some(parent) = expanded.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
+            }
+        }
+
+        Ok(expanded)
+    }
+
     fn spawn_export(
         &self,
         conn_id: ConnectionId,
         path: String,
+        base_dn: String,
         filter: String,
         attributes: Vec<String>,
     ) {
         let tab = self.tabs.iter().find(|t| t.id == conn_id);
         if let Some(tab) = tab {
-            let base_dn = tab.directory_tree.root_dn.clone();
             let tx = self.action_tx.clone();
+
+            let filepath = match Self::expand_export_path(&path) {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = tx.send(Action::ErrorMessage(format!("Export failed: {}", e)));
+                    return;
+                }
+            };
+            let display_path = filepath.display().to_string();
 
             match &tab.backend {
                 TabBackend::Offline(dir) => {
                     let entries = dir.search(&base_dn, &filter);
-                    let filepath = std::path::Path::new(&path);
-                    match loom_core::export::export_entries(&entries, filepath) {
+                    match loom_core::export::export_entries(&entries, &filepath, &attributes) {
                         Ok(count) => {
                             let _ = tx.send(Action::ExportComplete(format!(
                                 "Exported {} entries to {}",
-                                count, path
+                                count, display_path
                             )));
                         }
                         Err(e) => {
@@ -631,12 +666,11 @@ impl App {
                         let attr_refs: Vec<&str> = attributes.iter().map(|s| s.as_str()).collect();
                         match conn.search_subtree(&base_dn, &filter, attr_refs).await {
                             Ok(entries) => {
-                                let filepath = std::path::Path::new(&path);
-                                match loom_core::export::export_entries(&entries, filepath) {
+                                match loom_core::export::export_entries(&entries, &filepath, &attributes) {
                                     Ok(count) => {
                                         let _ = tx.send(Action::ExportComplete(format!(
                                             "Exported {} entries to {}",
-                                            count, path
+                                            count, display_path
                                         )));
                                     }
                                     Err(e) => {
@@ -1630,21 +1664,19 @@ impl App {
             // Export
             Action::ShowExportDialog => {
                 if let Some(tab) = self.active_tab() {
-                    // Count entries (approximate via tree)
-                    let count = tab
-                        .directory_tree
-                        .root
-                        .children
-                        .as_ref()
-                        .map(|c| c.len())
-                        .unwrap_or(0);
-                    self.export_dialog.show(count);
+                    let base_dn = self
+                        .tree_panel
+                        .selected_dn()
+                        .cloned()
+                        .unwrap_or_else(|| tab.directory_tree.root_dn.clone());
+                    self.export_dialog.show(&base_dn);
                 } else {
                     self.command_panel
                         .push_error("No active connection".to_string());
                 }
             }
             Action::ExportExecute {
+                base_dn,
                 path,
                 filter,
                 attributes,
@@ -1652,7 +1684,7 @@ impl App {
                 if let Some(id) = self.active_tab_id {
                     self.command_panel
                         .push_message(format!("Exporting to {} (filter: {})...", path, filter));
-                    self.spawn_export(id, path, filter, attributes);
+                    self.spawn_export(id, path, base_dn, filter, attributes);
                 }
             }
             Action::ExportComplete(msg) => {

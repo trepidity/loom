@@ -106,6 +106,7 @@ pub enum Action {
     // Export / Import
     ShowExportDialog,
     ExportExecute {
+        base_dn: String,
         path: String,
         filter: String,
         attributes: Vec<String>,

@@ -20,6 +20,7 @@ const FORMATS: &[(&str, &str)] = &[
 /// Which field is currently active.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum ExportField {
+    BaseDn,
     Filter,
     Attributes,
     Format,
@@ -33,6 +34,7 @@ pub struct ExportDialog {
     theme: Theme,
     active_field: ExportField,
     format_idx: usize,
+    base_dn: String,
     filter: String,
     attributes: String,
     filename: String,
@@ -44,20 +46,22 @@ impl ExportDialog {
             visible: false,
             popup: Popup::new("Export Entries", theme.clone()).with_size(60, 55),
             theme,
-            active_field: ExportField::Filter,
+            active_field: ExportField::BaseDn,
             format_idx: 0,
+            base_dn: String::new(),
             filter: String::new(),
             attributes: String::new(),
             filename: String::new(),
         }
     }
 
-    pub fn show(&mut self, _entry_count: usize) {
+    pub fn show(&mut self, base_dn: &str) {
+        self.base_dn = base_dn.to_string();
         self.filter = "(objectClass=*)".to_string();
         self.attributes = "*".to_string();
         self.format_idx = 0;
         self.filename = format!("export{}", FORMATS[0].1);
-        self.active_field = ExportField::Filter;
+        self.active_field = ExportField::BaseDn;
         self.visible = true;
         self.popup.show();
     }
@@ -75,16 +79,18 @@ impl ExportDialog {
             }
             KeyCode::Tab => {
                 self.active_field = match self.active_field {
+                    ExportField::BaseDn => ExportField::Filter,
                     ExportField::Filter => ExportField::Attributes,
                     ExportField::Attributes => ExportField::Format,
                     ExportField::Format => ExportField::Filename,
-                    ExportField::Filename => ExportField::Filter,
+                    ExportField::Filename => ExportField::BaseDn,
                 };
                 Action::None
             }
             KeyCode::BackTab => {
                 self.active_field = match self.active_field {
-                    ExportField::Filter => ExportField::Filename,
+                    ExportField::BaseDn => ExportField::Filename,
+                    ExportField::Filter => ExportField::BaseDn,
                     ExportField::Attributes => ExportField::Filter,
                     ExportField::Format => ExportField::Attributes,
                     ExportField::Filename => ExportField::Format,
@@ -128,6 +134,9 @@ impl ExportDialog {
     }
 
     fn submit(&mut self) -> Action {
+        if self.base_dn.trim().is_empty() {
+            return Action::ErrorMessage("Base DN is required".to_string());
+        }
         if self.filter.trim().is_empty() {
             return Action::ErrorMessage("Search filter is required".to_string());
         }
@@ -135,8 +144,14 @@ impl ExportDialog {
             return Action::ErrorMessage("Filename is required".to_string());
         }
 
-        let path = self.filename.trim().to_string();
+        let base_dn = self.base_dn.trim().to_string();
+        let mut path = self.filename.trim().to_string();
         let filter = self.filter.trim().to_string();
+
+        // Append the format extension if the filename has none
+        if std::path::Path::new(&path).extension().is_none() {
+            path.push_str(FORMATS[self.format_idx].1);
+        }
         let attributes = self.attributes.trim().to_string();
 
         // Parse attributes: comma or space separated, or "*" for all
@@ -152,6 +167,7 @@ impl ExportDialog {
 
         self.hide();
         Action::ExportExecute {
+            base_dn,
             path,
             filter,
             attributes: attrs,
@@ -161,6 +177,7 @@ impl ExportDialog {
     /// Returns mutable reference to the active text field, or None for Format.
     fn active_text_buffer_mut(&mut self) -> Option<&mut String> {
         match self.active_field {
+            ExportField::BaseDn => Some(&mut self.base_dn),
             ExportField::Filter => Some(&mut self.filter),
             ExportField::Attributes => Some(&mut self.attributes),
             ExportField::Filename => Some(&mut self.filename),
@@ -193,8 +210,9 @@ impl ExportDialog {
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        // Layout: filter(2) | attributes(2) | format(formats+1) | filename(2) | hints(1)
+        // Layout: base_dn(2) | filter(2) | attributes(2) | format(formats+1) | filename(2) | hints(1)
         let layout = Layout::vertical([
+            Constraint::Length(2),                        // Base DN
             Constraint::Length(2),                        // Filter
             Constraint::Length(2),                        // Attributes
             Constraint::Length(FORMATS.len() as u16 + 1), // Format
@@ -203,10 +221,19 @@ impl ExportDialog {
         ])
         .split(inner);
 
-        // Filter field
+        // Base DN field
         self.render_text_field(
             frame,
             layout[0],
+            "Base DN",
+            &self.base_dn,
+            ExportField::BaseDn,
+        );
+
+        // Filter field
+        self.render_text_field(
+            frame,
+            layout[1],
             "Search Filter",
             &self.filter,
             ExportField::Filter,
@@ -215,7 +242,7 @@ impl ExportDialog {
         // Attributes field
         self.render_text_field(
             frame,
-            layout[1],
+            layout[2],
             "Attributes",
             &self.attributes,
             ExportField::Attributes,
@@ -245,12 +272,12 @@ impl ExportDialog {
                 style,
             )));
         }
-        frame.render_widget(Paragraph::new(format_lines), layout[2]);
+        frame.render_widget(Paragraph::new(format_lines), layout[3]);
 
         // Filename field
         self.render_text_field(
             frame,
-            layout[3],
+            layout[4],
             "Filename",
             &self.filename,
             ExportField::Filename,
@@ -263,7 +290,7 @@ impl ExportDialog {
             "Tab:next  Enter:export  Esc:cancel"
         };
         let hints = Paragraph::new(Line::from(Span::styled(hint_text, self.theme.dimmed)));
-        frame.render_widget(hints, layout[4]);
+        frame.render_widget(hints, layout[5]);
     }
 
     fn render_text_field(
