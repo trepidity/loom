@@ -1293,21 +1293,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
-name = "loom"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "dirs",
- "loom-core",
- "loom-tui",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "winresource",
-]
-
-[[package]]
 name = "loom-core"
 version = "0.1.0"
 dependencies = [
@@ -1325,6 +1310,21 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "tracing",
+]
+
+[[package]]
+name = "loom-ldapbrowser"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "dirs",
+ "loom-core",
+ "loom-tui",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "winresource",
 ]
 
 [[package]]

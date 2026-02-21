@@ -1,4 +1,4 @@
-# Loom
+# loom-ldapbrowser
 
 A terminal-based LDAP browser built with Rust.
 
@@ -28,28 +28,28 @@ Browse, search, edit, and manage LDAP directories from the comfort of your termi
 Requires Rust 1.80+.
 
 ```bash
-cargo install --path crates/loom
+cargo install --path crates/loom-ldapbrowser
 ```
 
 ### Prebuilt binaries
 
-Download from [GitHub Releases](https://github.com/trepidity/loom/releases) for Linux (x86_64, aarch64), macOS (Intel, Apple Silicon), and Windows (x86_64).
+Download from [GitHub Releases](https://github.com/trepidity/loom-ldapbrowser/releases) for Linux (x86_64, aarch64), macOS (Intel, Apple Silicon), and Windows (x86_64).
 
 ## Quick Start
 
 ```bash
 # Connect directly
-loom -H ldap.example.com -D "cn=admin,dc=example,dc=com" -b "dc=example,dc=com"
+loom-ldapbrowser -H ldap.example.com -D "cn=admin,dc=example,dc=com" -b "dc=example,dc=com"
 
 # Or use saved profiles
-loom
+loom-ldapbrowser
 ```
 
 Press `Ctrl+T` to open the connection dialog. Press `F5` or `?` for help.
 
 ## Configuration
 
-Loom reads `~/.config/loom/config.toml`. See the [User Manual](USER_MANUAL.md) for full configuration reference.
+loom-ldapbrowser reads `~/.config/loom-ldapbrowser/config.toml`. See the [User Manual](USER_MANUAL.md) for full configuration reference.
 
 ```toml
 [general]

@@ -220,7 +220,7 @@ impl Theme {
                 // Try loading from config themes directory
                 if let Some(config_dir) = dirs::config_dir() {
                     let theme_path = config_dir
-                        .join("loom")
+                        .join("loom-ldapbrowser")
                         .join("themes")
                         .join(format!("{}.toml", name));
                     if theme_path.exists() {

@@ -158,10 +158,10 @@ impl Default for GeneralConfig {
 }
 
 impl AppConfig {
-    /// Load config from ~/.config/loom/config.toml, with fallback to defaults.
+    /// Load config from ~/.config/loom-ldapbrowser/config.toml, with fallback to defaults.
     pub fn load() -> Self {
         let config_path = dirs::config_dir()
-            .map(|d| d.join("loom").join("config.toml"))
+            .map(|d| d.join("loom-ldapbrowser").join("config.toml"))
             .unwrap_or_default();
 
         if config_path.exists() {
@@ -183,7 +183,7 @@ impl AppConfig {
     /// Save the entire config to disk, overwriting the existing file.
     pub fn save(&self) -> Result<(), String> {
         let config_dir = dirs::config_dir()
-            .map(|d| d.join("loom"))
+            .map(|d| d.join("loom-ldapbrowser"))
             .ok_or_else(|| "Cannot determine config directory".to_string())?;
 
         std::fs::create_dir_all(&config_dir)
@@ -223,7 +223,7 @@ impl AppConfig {
 
     /// Serialize selected profiles to a TOML string with [[connections]] blocks.
     pub fn export_profiles(profiles: &[ConnectionProfile]) -> Result<String, String> {
-        let mut output = String::from("# Loom LDAP Browser — Exported Profiles\n");
+        let mut output = String::from("# loom-ldapbrowser — Exported Profiles\n");
         for profile in profiles {
             let block = toml::to_string(profile)
                 .map_err(|e| format!("Failed to serialize profile '{}': {}", profile.name, e))?;
@@ -254,7 +254,7 @@ impl AppConfig {
     /// The password is never written — only the profile metadata.
     pub fn append_connection(profile: &ConnectionProfile) -> Result<(), String> {
         let config_dir = dirs::config_dir()
-            .map(|d| d.join("loom"))
+            .map(|d| d.join("loom-ldapbrowser"))
             .ok_or_else(|| "Cannot determine config directory".to_string())?;
 
         std::fs::create_dir_all(&config_dir)

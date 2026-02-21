@@ -239,7 +239,7 @@ impl App {
             }
         } else {
             self.command_panel.push_message(format!(
-                "No profiles configured. Press {} or add profiles to ~/.config/loom/config.toml",
+                "No profiles configured. Press {} or add profiles to ~/.config/loom-ldapbrowser/config.toml",
                 self.keymap.hint("show_connect_dialog"),
             ));
         }

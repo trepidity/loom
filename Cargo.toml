@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/loom",
+    "crates/loom-ldapbrowser",
     "crates/loom-core",
     "crates/loom-tui",
 ]

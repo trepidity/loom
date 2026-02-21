@@ -7,9 +7,9 @@ use loom_tui::app::App;
 use loom_tui::config::AppConfig;
 
 #[derive(Parser, Debug)]
-#[command(name = "loom", version, about = "A terminal-based LDAP browser")]
+#[command(name = "loom-ldapbrowser", version, about = "A terminal-based LDAP browser")]
 struct Cli {
-    /// Path to config file (default: ~/.config/loom/config.toml)
+    /// Path to config file (default: ~/.config/loom-ldapbrowser/config.toml)
     #[arg(short, long)]
     config: Option<String>,
 
@@ -37,15 +37,15 @@ async fn main() -> Result<()> {
     // Initialize logging to ./logs/ directory at debug level
     let log_dir = std::path::PathBuf::from("./logs");
     std::fs::create_dir_all(&log_dir)?;
-    let log_file = std::fs::File::create(log_dir.join("loom.log"))?;
+    let log_file = std::fs::File::create(log_dir.join("loom-ldapbrowser.log"))?;
 
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("loom=debug".parse()?))
+        .with_env_filter(EnvFilter::from_default_env().add_directive("loom_ldapbrowser=debug".parse()?))
         .with_writer(log_file)
         .with_ansi(false)
         .init();
 
-    info!("Loom starting");
+    info!("loom-ldapbrowser starting");
 
     // Load config
     let mut config = AppConfig::load();
@@ -77,6 +77,6 @@ async fn main() -> Result<()> {
     app.connect_first_profile().await;
     app.run().await?;
 
-    info!("Loom exiting");
+    info!("loom-ldapbrowser exiting");
     Ok(())
 }

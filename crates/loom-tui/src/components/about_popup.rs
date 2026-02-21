@@ -60,7 +60,7 @@ impl AboutPopup {
 
         let lines = vec![
             Line::from(""),
-            Line::from(Span::styled("  Loom", self.theme.popup_title)),
+            Line::from(Span::styled("  Loom LDAP Browser", self.theme.popup_title)),
             Line::from(Span::styled(format!("  v{}", version), self.theme.dimmed)),
             Line::from(""),
             Line::from(Span::styled(
@@ -78,7 +78,7 @@ impl AboutPopup {
             ]),
             Line::from(vec![
                 Span::styled("  Repo:    ", self.theme.dimmed),
-                Span::styled("github.com/trepidity/loom", self.theme.normal),
+                Span::styled("github.com/trepidity/loom-ldapbrowser", self.theme.normal),
             ]),
             Line::from(""),
             Line::from(Span::styled(

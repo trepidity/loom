@@ -1,4 +1,4 @@
-# Loom User Manual
+# loom-ldapbrowser User Manual
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@
 
 ## Overview
 
-Loom is a terminal-based LDAP browser built with Rust. It provides a full-featured TUI for browsing, searching, editing, and managing LDAP directories. It supports multiple simultaneous connections, vim-style navigation, and works with OpenLDAP, Active Directory, and other LDAP servers.
+loom-ldapbrowser is a terminal-based LDAP browser built with Rust. It provides a full-featured TUI for browsing, searching, editing, and managing LDAP directories. It supports multiple simultaneous connections, vim-style navigation, and works with OpenLDAP, Active Directory, and other LDAP servers.
 
 ## Installation
 
@@ -40,14 +40,14 @@ Loom is a terminal-based LDAP browser built with Rust. It provides a full-featur
 Requires Rust 1.80 or later.
 
 ```bash
-git clone https://github.com/trepidity/loom.git
-cd loom
-cargo install --path crates/loom
+git clone https://github.com/trepidity/loom-ldapbrowser.git
+cd loom-ldapbrowser
+cargo install --path crates/loom-ldapbrowser
 ```
 
 ### Prebuilt binaries
 
-Download from [GitHub Releases](https://github.com/trepidity/loom/releases):
+Download from [GitHub Releases](https://github.com/trepidity/loom-ldapbrowser/releases):
 
 | Platform | Architecture |
 |----------|-------------|
@@ -59,10 +59,10 @@ Download from [GitHub Releases](https://github.com/trepidity/loom/releases):
 
 ```bash
 # Connect with CLI arguments
-loom -H ldap.example.com -D "cn=admin,dc=example,dc=com" -b "dc=example,dc=com"
+loom-ldapbrowser -H ldap.example.com -D "cn=admin,dc=example,dc=com" -b "dc=example,dc=com"
 
 # Use saved profiles from config
-loom
+loom-ldapbrowser
 ```
 
 On first launch with no configuration, press `Ctrl+T` to open the connection dialog. Press `F5` or `?` at any time for the built-in help overlay.
@@ -71,7 +71,7 @@ On first launch with no configuration, press `Ctrl+T` to open the connection dia
 
 ## Layouts
 
-Loom has two layouts, toggled with `F1` and `F2`:
+loom-ldapbrowser has two layouts, toggled with `F1` and `F2`:
 
 - **Browser** (`F1`) -- The main working view with the directory tree, detail panel, and command bar.
 - **Profiles** (`F2`) -- Manage saved connection profiles organized into folders.
@@ -127,7 +127,7 @@ There are several ways to connect:
 3. **Profiles layout** (`F2`) -- Browse saved profiles, press `c` to connect.
 4. **Config file** -- The first profile in `config.toml` connects automatically on startup.
 
-When a profile uses `credential_method = "prompt"`, Loom will prompt for the bind password. You can also set the `LOOM_PASSWORD` environment variable to skip the prompt.
+When a profile uses `credential_method = "prompt"`, loom-ldapbrowser will prompt for the bind password. You can also set the `LOOM_PASSWORD` environment variable to skip the prompt.
 
 ---
 
@@ -242,7 +242,7 @@ Navigate with `j/k`, switch tabs with `Tab`, filter with `/`, and close with `q`
 
 ## Connection Profiles
 
-Profiles are saved in `~/.config/loom/config.toml` under `[[connections]]` blocks.
+Profiles are saved in `~/.config/loom-ldapbrowser/config.toml` under `[[connections]]` blocks.
 
 ### Organizing with Folders
 
@@ -276,7 +276,7 @@ From the profiles layout, press `x` to export selected profiles to a file, or `i
 
 ## Configuration
 
-Loom reads `~/.config/loom/config.toml`.
+loom-ldapbrowser reads `~/.config/loom-ldapbrowser/config.toml`.
 
 ### Full Example
 
@@ -484,7 +484,7 @@ All global keybindings are configurable via the `[keybindings]` section. Overrid
 
 ## Themes
 
-Loom includes five built-in themes. Set the theme in `config.toml`:
+loom-ldapbrowser includes five built-in themes. Set the theme in `config.toml`:
 
 ```toml
 [general]
@@ -501,7 +501,7 @@ theme = "dark"
 
 ### Custom Themes
 
-Place custom theme files in `~/.config/loom/themes/`. A theme TOML file defines colors for borders, text, selections, headers, and other elements using hex colors (`#RRGGBB`) or named colors.
+Place custom theme files in `~/.config/loom-ldapbrowser/themes/`. A theme TOML file defines colors for borders, text, selections, headers, and other elements using hex colors (`#RRGGBB`) or named colors.
 
 ---
 
@@ -544,7 +544,7 @@ password_command = "gpg --quiet --decrypt ~/.ldap-password.gpg"
 
 ## Offline Mode
 
-Set `offline = true` on a connection profile to use an in-memory demo directory without connecting to a server. This is useful for testing Loom's features or demonstrating the UI.
+Set `offline = true` on a connection profile to use an in-memory demo directory without connecting to a server. This is useful for testing loom-ldapbrowser's features or demonstrating the UI.
 
 ```toml
 [[connections]]
@@ -570,10 +570,10 @@ Press `F7` to toggle the log panel. It shows a scrollable history of log message
 ## Command-Line Options
 
 ```
-loom [OPTIONS]
+loom-ldapbrowser [OPTIONS]
 
 Options:
-  -c, --config <PATH>     Path to config file (default: ~/.config/loom/config.toml)
+  -c, --config <PATH>     Path to config file (default: ~/.config/loom-ldapbrowser/config.toml)
   -H, --host <HOST>       LDAP host to connect to (overrides config)
   -p, --port <PORT>       LDAP port (overrides config)
   -D, --bind-dn <DN>      Bind DN (overrides config)
@@ -582,19 +582,19 @@ Options:
   -V, --version           Print version
 ```
 
-CLI arguments override the first connection profile in the config file. If `-H` is specified, Loom connects to that host on startup.
+CLI arguments override the first connection profile in the config file. If `-H` is specified, loom-ldapbrowser connects to that host on startup.
 
 ---
 
 ## Architecture
 
-Loom is organized as a Cargo workspace:
+loom-ldapbrowser is organized as a Cargo workspace:
 
 ```
 crates/
-  loom/          Binary -- CLI parsing and entry point
-  loom-core/     Library -- LDAP operations, export/import, schema, DN utilities
-  loom-tui/      Library -- TUI framework, components, themes, keybindings
+  loom-ldapbrowser/  Binary -- CLI parsing and entry point
+  loom-core/         Library -- LDAP operations, export/import, schema, DN utilities
+  loom-tui/          Library -- TUI framework, components, themes, keybindings
 ```
 
 All state changes flow through an `Action` enum dispatched via an async channel. LDAP operations run in background Tokio tasks, keeping the UI responsive.

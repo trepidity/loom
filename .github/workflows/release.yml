@@ -17,20 +17,20 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact: loom
+            artifact: loom-ldapbrowser
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact: loom
+            artifact: loom-ldapbrowser
             cross: true
           - target: x86_64-apple-darwin
             os: macos-latest
-            artifact: loom
+            artifact: loom-ldapbrowser
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact: loom
+            artifact: loom-ldapbrowser
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact: loom.exe
+            artifact: loom-ldapbrowser.exe
 
     steps:
       - uses: actions/checkout@v4
@@ -49,29 +49,29 @@ jobs:
 
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }} -p loom
+        run: cross build --release --target ${{ matrix.target }} -p loom-ldapbrowser
 
       - name: Build (native)
         if: "!matrix.cross"
-        run: cargo build --release --target ${{ matrix.target }} -p loom
+        run: cargo build --release --target ${{ matrix.target }} -p loom-ldapbrowser
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../loom-${{ matrix.target }}.tar.gz ${{ matrix.artifact }}
+          tar czf ../../../loom-ldapbrowser-${{ matrix.target }}.tar.gz ${{ matrix.artifact }}
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../loom-${{ matrix.target }}.zip ${{ matrix.artifact }}
+          7z a ../../../loom-ldapbrowser-${{ matrix.target }}.zip ${{ matrix.artifact }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: loom-${{ matrix.target }}
-          path: loom-${{ matrix.target }}.*
+          name: loom-ldapbrowser-${{ matrix.target }}
+          path: loom-ldapbrowser-${{ matrix.target }}.*
 
   release:
     name: Create Release
