@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod bulk;
+pub mod config;
 pub mod connection;
 pub mod credentials;
 pub mod dn;

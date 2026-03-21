@@ -3394,6 +3394,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "loom-browser"
+version = "0.1.0"
+dependencies = [
+ "loom-core",
+ "loom-gui",
+ "slint",
+]
+
+[[package]]
 name = "loom-core"
 version = "0.1.0"
 dependencies = [
