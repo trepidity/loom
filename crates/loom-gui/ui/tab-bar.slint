@@ -1,0 +1,73 @@
+import { AppTheme } from "theme.slint";
+
+export struct TabInfo {
+    id: int,
+    title: string,
+}
+
+export component TabBar inherits Rectangle {
+    in property <[TabInfo]> tabs: [];
+    in-out property <int> active-tab: -1;
+    callback tab-clicked(int);
+    callback close-tab(int);
+
+    height: 36px;
+    background: AppTheme.bg-secondary;
+    border-width: 1px;
+    border-color: AppTheme.border;
+
+    HorizontalLayout {
+        padding-left: 4px;
+        alignment: start;
+        spacing: 2px;
+
+        for tab[index] in root.tabs: Rectangle {
+            width: 180px;
+            height: 32px;
+            border-radius: AppTheme.border-radius;
+            background: index == root.active-tab ? AppTheme.bg-primary : AppTheme.bg-tertiary;
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 4px;
+
+                Text {
+                    text: tab.title;
+                    color: index == root.active-tab ? AppTheme.fg-primary : AppTheme.fg-secondary;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+
+                // Close button
+                Rectangle {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 3px;
+                    background: close-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                    Text {
+                        text: "x";
+                        color: AppTheme.fg-muted;
+                        font-size: 12px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    close-touch := TouchArea {
+                        clicked => {
+                            root.close-tab(index);
+                        }
+                    }
+                }
+            }
+
+            TouchArea {
+                clicked => {
+                    root.tab-clicked(index);
+                }
+            }
+        }
+    }
+}
