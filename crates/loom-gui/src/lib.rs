@@ -1107,7 +1107,6 @@ pub fn run() -> Result<(), slint::PlatformError> {
                     read_only: false,
                     offline: false,
                     labels: labels
-                        .to_string()
                         .split(',')
                         .map(|s| s.trim().to_string())
                         .filter(|s| !s.is_empty())
@@ -1225,7 +1224,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                     let active = *active_profile.borrow();
                     let conns = connections.borrow();
                     if let Some(active_idx) = active {
-                        if let Some(ref s) = conns.get(&active_idx) {
+                        if let Some(s) = conns.get(&active_idx) {
                             let selected = win.get_tree_selected_index();
                             if selected >= 0 && (selected as usize) < s.tree_meta.len() {
                                 s.tree_meta[selected as usize].dn.clone()
@@ -1389,7 +1388,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                     let active = *active_profile.borrow();
                     let conns = connections.borrow();
                     if let Some(active_idx) = active {
-                        if let Some(ref s) = conns.get(&active_idx) {
+                        if let Some(s) = conns.get(&active_idx) {
                             let selected = win.get_tree_selected_index();
                             if selected >= 0 && (selected as usize) < s.tree_meta.len() {
                                 s.tree_meta[selected as usize].dn.clone()
