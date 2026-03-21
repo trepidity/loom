@@ -1,5 +1,5 @@
 [package]
-name = "loom-ldapbrowser"
+name = "loom"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,7 +7,7 @@ license.workspace = true
 description = "A terminal-based LDAP browser"
 
 [[bin]]
-name = "loom-ldapbrowser"
+name = "loom"
 path = "src/main.rs"
 
 [dependencies]
