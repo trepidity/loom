@@ -1,5 +1,7 @@
 import { VerticalBox } from "std-widgets.slint";
 import { AppTheme } from "theme.slint";
+import { StatusBar } from "status-bar.slint";
+import { TabBar, TabInfo } from "tab-bar.slint";
 
 export { AppTheme }
 
@@ -9,13 +11,27 @@ export component MainWindow inherits Window {
     preferred-height: 800px;
     background: AppTheme.bg-primary;
 
+    in-out property <string> status-message: "Ready";
+    in-out property <bool> status-is-error: false;
+
     VerticalLayout {
-        Text {
-            text: "Loom Browser";
-            color: AppTheme.fg-primary;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            font-size: 24px;
+        // Main content area (placeholder)
+        Rectangle {
+            vertical-stretch: 1;
+            background: AppTheme.bg-primary;
+
+            Text {
+                text: "No connections. Use Profiles > New Profile to get started.";
+                color: AppTheme.fg-muted;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        // Status bar
+        StatusBar {
+            message: root.status-message;
+            is-error: root.status-is-error;
         }
     }
 }

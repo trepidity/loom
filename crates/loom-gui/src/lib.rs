@@ -8,6 +8,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
 
     apply_theme(&main_window, &config.general.theme);
 
+    main_window.set_status_message("Ready".into());
+
     main_window.run()
 }
 
