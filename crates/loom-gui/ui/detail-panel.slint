@@ -1,0 +1,66 @@
+import { AppTheme } from "theme.slint";
+import { ListView } from "std-widgets.slint";
+
+export struct AttributeRow {
+    name: string,
+    value: string,
+}
+
+export component DetailPanel inherits Rectangle {
+    in property <[AttributeRow]> attributes: [];
+    in property <string> entry-dn: "";
+
+    background: AppTheme.bg-primary;
+
+    VerticalLayout {
+        // DN header
+        Rectangle {
+            height: 32px;
+            background: AppTheme.bg-secondary;
+            border-width: 1px;
+            border-color: AppTheme.border;
+
+            HorizontalLayout {
+                padding-left: 8px;
+
+                Text {
+                    text: root.entry-dn;
+                    color: AppTheme.fg-primary;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+        }
+
+        // Attribute list
+        ListView {
+            for attr[index] in root.attributes: Rectangle {
+                height: 28px;
+                background: Math.mod(index, 2) == 0 ? AppTheme.bg-primary : AppTheme.bg-secondary;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    spacing: 16px;
+
+                    Text {
+                        text: attr.name;
+                        color: AppTheme.fg-secondary;
+                        font-size: 13px;
+                        width: 200px;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: attr.value;
+                        color: AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+        }
+    }
+}

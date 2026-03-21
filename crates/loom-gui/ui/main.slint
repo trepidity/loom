@@ -1,8 +1,8 @@
-import { VerticalBox } from "std-widgets.slint";
 import { AppTheme } from "theme.slint";
 import { StatusBar } from "status-bar.slint";
 import { TabBar, TabInfo } from "tab-bar.slint";
 import { TreeView, TreeNode } from "tree-view.slint";
+import { DetailPanel, AttributeRow } from "detail-panel.slint";
 
 export { AppTheme }
 
@@ -12,12 +12,36 @@ export component MainWindow inherits Window {
     preferred-height: 800px;
     background: AppTheme.bg-primary;
 
+    // Status
     in-out property <string> status-message: "Ready";
     in-out property <bool> status-is-error: false;
 
+    // Tabs
+    in-out property <[TabInfo]> tabs: [];
+    in-out property <int> active-tab: -1;
+    callback tab-clicked(int);
+    callback close-tab(int);
+
+    // Tree
+    in-out property <[TreeNode]> tree-model: [];
+    in-out property <int> tree-selected-index: -1;
+    callback tree-toggle-expand(int);
+    callback tree-node-selected(int);
+
+    // Detail
+    in-out property <[AttributeRow]> attributes: [];
+    in-out property <string> entry-dn: "";
+
     VerticalLayout {
-        // Main content area (placeholder)
-        Rectangle {
+        TabBar {
+            tabs: root.tabs;
+            active-tab: root.active-tab;
+            tab-clicked(index) => { root.tab-clicked(index); }
+            close-tab(index) => { root.close-tab(index); }
+        }
+
+        // Main content - empty state
+        if root.tabs.length == 0 : Rectangle {
             vertical-stretch: 1;
             background: AppTheme.bg-primary;
 
@@ -26,10 +50,35 @@ export component MainWindow inherits Window {
                 color: AppTheme.fg-muted;
                 horizontal-alignment: center;
                 vertical-alignment: center;
+                font-size: 14px;
             }
         }
 
-        // Status bar
+        // Main content - tree + detail split
+        if root.tabs.length > 0 : HorizontalLayout {
+            vertical-stretch: 1;
+
+            TreeView {
+                model: root.tree-model;
+                selected-index: root.tree-selected-index;
+                horizontal-stretch: 1;
+                toggle-expand(index) => { root.tree-toggle-expand(index); }
+                node-selected(index) => { root.tree-node-selected(index); }
+            }
+
+            // Divider
+            Rectangle {
+                width: 1px;
+                background: AppTheme.border;
+            }
+
+            DetailPanel {
+                attributes: root.attributes;
+                entry-dn: root.entry-dn;
+                horizontal-stretch: 2;
+            }
+        }
+
         StatusBar {
             message: root.status-message;
             is-error: root.status-is-error;
