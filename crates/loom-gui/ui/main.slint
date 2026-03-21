@@ -85,6 +85,10 @@ export component MainWindow inherits Window {
     callback show-theme-selector();
     callback change-theme(string);
 
+    // Menu bar
+    callback menu-quit();
+    callback show-about();
+
     // Export dialog
     in-out property <bool> export-dialog-visible: false;
     in-out property <string> export-base-dn: "";
@@ -92,40 +96,54 @@ export component MainWindow inherits Window {
     callback export-execute(string, string, int);
     callback export-cancel();
 
+    MenuBar {
+        Menu {
+            title: "Profiles";
+            MenuItem {
+                title: "New Profile...";
+                activated => { root.new-profile-requested(); }
+            }
+            MenuSeparator {}
+            MenuItem {
+                title: "Quit";
+                activated => { root.menu-quit(); }
+            }
+        }
+        Menu {
+            title: "Edit";
+            MenuItem {
+                title: "Search (Ctrl+F)";
+                activated => { root.show-search-dialog(); }
+            }
+            MenuSeparator {}
+            MenuItem {
+                title: "Export...";
+                activated => { root.show-export-dialog(); }
+            }
+        }
+        Menu {
+            title: "View";
+            MenuItem {
+                title: "Theme...";
+                activated => { root.show-theme-selector(); }
+            }
+        }
+        Menu {
+            title: "Help";
+            MenuItem {
+                title: "About";
+                activated => { root.show-about(); }
+            }
+        }
+    }
+
     VerticalLayout {
-        HorizontalLayout {
+        TabBar {
             height: 36px;
-
-            TabBar {
-                horizontal-stretch: 1;
-                tabs: root.tabs;
-                active-tab: root.active-tab;
-                tab-clicked(index) => { root.tab-clicked(index); }
-                close-tab(index) => { root.close-tab(index); }
-            }
-
-            // Theme button
-            Rectangle {
-                width: 64px;
-                height: 36px;
-                background: theme-btn-touch.has-hover ? AppTheme.bg-hover : AppTheme.bg-secondary;
-                border-width: 1px;
-                border-color: AppTheme.border;
-
-                theme-btn-touch := TouchArea {
-                    clicked => {
-                        root.show-theme-selector();
-                    }
-                }
-
-                Text {
-                    text: "Theme";
-                    color: AppTheme.fg-secondary;
-                    font-size: 12px;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
+            tabs: root.tabs;
+            active-tab: root.active-tab;
+            tab-clicked(index) => { root.tab-clicked(index); }
+            close-tab(index) => { root.close-tab(index); }
         }
 
         // Main content - empty state

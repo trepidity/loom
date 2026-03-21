@@ -1054,6 +1054,30 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
+    // --- Menu bar: quit callback ---
+    {
+        let weak = main_window.as_weak();
+        main_window.on_menu_quit(move || {
+            if let Some(win) = weak.upgrade() {
+                win.hide().ok();
+            }
+        });
+    }
+
+    // --- Menu bar: about callback ---
+    {
+        let weak = main_window.as_weak();
+        main_window.on_show_about(move || {
+            if let Some(win) = weak.upgrade() {
+                win.set_status_message(SharedString::from(format!(
+                    "Loom Browser v{} - An LDAP directory browser",
+                    env!("CARGO_PKG_VERSION")
+                )));
+                win.set_status_is_error(false);
+            }
+        });
+    }
+
     // --- Task 11: Auto-connect to first profile if available ---
     {
         let config = config.borrow();
