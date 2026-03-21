@@ -1,0 +1,177 @@
+import { AppTheme } from "theme.slint";
+
+export component ThemeSelector inherits Rectangle {
+    in-out property <bool> show: false;
+    in-out property <string> active-theme: "dark";
+
+    callback theme-selected(string);
+
+    // Only show when visible
+    opacity: root.show ? 1.0 : 0.0;
+    visible: root.show;
+
+    // Dark overlay covering entire window
+    background: #00000066;
+
+    // Click overlay to dismiss
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        clicked => {
+            root.show = false;
+        }
+    }
+
+    // Popup card positioned near top-right
+    Rectangle {
+        x: parent.width - self.width - 16px;
+        y: 44px;
+        width: 200px;
+        height: 260px;
+        background: AppTheme.bg-secondary;
+        border-radius: AppTheme.border-radius * 2;
+        border-width: 1px;
+        border-color: AppTheme.border;
+
+        // Block clicks from passing through to dismiss overlay
+        TouchArea {
+            width: 100%;
+            height: 100%;
+        }
+
+        VerticalLayout {
+            padding: 12px;
+            spacing: 4px;
+
+            // Title
+            Text {
+                text: "Theme";
+                color: AppTheme.fg-primary;
+                font-size: 14px;
+                font-weight: 600;
+                horizontal-alignment: left;
+            }
+
+            // Separator
+            Rectangle {
+                height: 1px;
+                background: AppTheme.border;
+            }
+
+            // Dark
+            Rectangle {
+                height: 36px;
+                border-radius: AppTheme.border-radius;
+                background: root.active-theme == "dark" ? AppTheme.bg-selected : dark-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                dark-touch := TouchArea {
+                    clicked => { root.theme-selected("dark"); }
+                }
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.active-theme == "dark" ? "Dark  \u{2713}" : "Dark";
+                        color: root.active-theme == "dark" ? AppTheme.accent : AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Light
+            Rectangle {
+                height: 36px;
+                border-radius: AppTheme.border-radius;
+                background: root.active-theme == "light" ? AppTheme.bg-selected : light-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                light-touch := TouchArea {
+                    clicked => { root.theme-selected("light"); }
+                }
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.active-theme == "light" ? "Light  \u{2713}" : "Light";
+                        color: root.active-theme == "light" ? AppTheme.accent : AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Solarized
+            Rectangle {
+                height: 36px;
+                border-radius: AppTheme.border-radius;
+                background: root.active-theme == "solarized" ? AppTheme.bg-selected : solar-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                solar-touch := TouchArea {
+                    clicked => { root.theme-selected("solarized"); }
+                }
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.active-theme == "solarized" ? "Solarized  \u{2713}" : "Solarized";
+                        color: root.active-theme == "solarized" ? AppTheme.accent : AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Nord
+            Rectangle {
+                height: 36px;
+                border-radius: AppTheme.border-radius;
+                background: root.active-theme == "nord" ? AppTheme.bg-selected : nord-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                nord-touch := TouchArea {
+                    clicked => { root.theme-selected("nord"); }
+                }
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.active-theme == "nord" ? "Nord  \u{2713}" : "Nord";
+                        color: root.active-theme == "nord" ? AppTheme.accent : AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Matrix
+            Rectangle {
+                height: 36px;
+                border-radius: AppTheme.border-radius;
+                background: root.active-theme == "matrix" ? AppTheme.bg-selected : matrix-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                matrix-touch := TouchArea {
+                    clicked => { root.theme-selected("matrix"); }
+                }
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.active-theme == "matrix" ? "Matrix  \u{2713}" : "Matrix";
+                        color: root.active-theme == "matrix" ? AppTheme.accent : AppTheme.fg-primary;
+                        font-size: 13px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

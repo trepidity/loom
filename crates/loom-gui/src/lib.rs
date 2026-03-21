@@ -32,6 +32,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new()?;
 
     apply_theme(&main_window, &config.general.theme);
+    main_window.set_current_theme(SharedString::from(&config.general.theme));
 
     main_window.set_status_message("Ready".into());
 
@@ -1014,6 +1015,41 @@ pub fn run() -> Result<(), slint::PlatformError> {
         main_window.on_search_cancel(move || {
             if let Some(win) = weak.upgrade() {
                 win.set_search_dialog_visible(false);
+            }
+        });
+    }
+
+    // --- Task 19: show-theme-selector callback ---
+    {
+        let weak = main_window.as_weak();
+        let config = config.clone();
+
+        main_window.on_show_theme_selector(move || {
+            if let Some(win) = weak.upgrade() {
+                let cfg = config.borrow();
+                win.set_current_theme(SharedString::from(&cfg.general.theme));
+                win.set_theme_selector_visible(true);
+            }
+        });
+    }
+
+    // --- Task 19: change-theme callback ---
+    {
+        let weak = main_window.as_weak();
+        let config = config.clone();
+
+        main_window.on_change_theme(move |theme_name| {
+            let name = theme_name.to_string();
+            if let Some(win) = weak.upgrade() {
+                apply_theme(&win, &name);
+                win.set_current_theme(SharedString::from(&name));
+                win.set_theme_selector_visible(false);
+                win.set_status_message(SharedString::from(format!("Theme changed to {}", &name)));
+                win.set_status_is_error(false);
+            }
+            config.borrow_mut().general.theme = name;
+            if let Err(e) = config.borrow().save() {
+                error!("Failed to save config: {}", e);
             }
         });
     }
