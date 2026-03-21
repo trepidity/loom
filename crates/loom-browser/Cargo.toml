@@ -1,0 +1,16 @@
+[package]
+name = "loom-browser"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Graphical LDAP browser (Slint GUI)"
+
+[[bin]]
+name = "loom-browser"
+path = "src/main.rs"
+
+[dependencies]
+loom-gui = { workspace = true }
+loom-core = { workspace = true }
+slint = { workspace = true }

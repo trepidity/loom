@@ -5,6 +5,7 @@ members = [
     "crates/loom-core",
     "crates/loom-tui",
     "crates/loom-gui",
+    "crates/loom-browser",
 ]
 
 [workspace.package]
