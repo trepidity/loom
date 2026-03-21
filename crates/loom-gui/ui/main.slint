@@ -6,6 +6,8 @@ import { DetailPanel, AttributeRow } from "detail-panel.slint";
 import { ProfileDialog } from "profile-dialog.slint";
 import { VaultDialog } from "vault-dialog.slint";
 import { CredentialDialog } from "credential-dialog.slint";
+import { ExportDialog } from "export-dialog.slint";
+import { SearchDialog, SearchResult } from "search-dialog.slint";
 
 export { AppTheme }
 
@@ -64,6 +66,24 @@ export component MainWindow inherits Window {
     in-out property <string> credential-bind-dn: "";
     callback credential-connect(string);
     callback credential-cancel();
+
+    // Search dialog
+    in-out property <bool> search-dialog-visible: false;
+    in-out property <string> search-base-dn: "";
+    in-out property <string> search-filter: "(objectClass=*)";
+    in-out property <int> search-scope-index: 0;
+    in-out property <[SearchResult]> search-results: [];
+    callback show-search-dialog();
+    callback search-execute(string, string, int);
+    callback search-result-selected(int);
+    callback search-cancel();
+
+    // Export dialog
+    in-out property <bool> export-dialog-visible: false;
+    in-out property <string> export-base-dn: "";
+    callback show-export-dialog();
+    callback export-execute(string, string, int);
+    callback export-cancel();
 
     VerticalLayout {
         TabBar {
@@ -182,6 +202,47 @@ export component MainWindow inherits Window {
         cancel-clicked => {
             root.credential-dialog-visible = false;
             root.credential-cancel();
+        }
+    }
+
+    // Export dialog overlay
+    ExportDialog {
+        show <=> root.export-dialog-visible;
+        base-dn <=> root.export-base-dn;
+        width: root.width;
+        height: root.height;
+
+        export-clicked(base-dn, file-path, format-index) => {
+            root.export-execute(base-dn, file-path, format-index);
+        }
+
+        cancel-clicked => {
+            root.export-dialog-visible = false;
+            root.export-cancel();
+        }
+    }
+
+    // Search dialog overlay
+    SearchDialog {
+        show <=> root.search-dialog-visible;
+        base-dn <=> root.search-base-dn;
+        filter <=> root.search-filter;
+        scope-index <=> root.search-scope-index;
+        results <=> root.search-results;
+        width: root.width;
+        height: root.height;
+
+        search-clicked(base-dn, filter, scope-index) => {
+            root.search-execute(base-dn, filter, scope-index);
+        }
+
+        result-selected(index) => {
+            root.search-result-selected(index);
+        }
+
+        cancel-clicked => {
+            root.search-dialog-visible = false;
+            root.search-cancel();
         }
     }
 }

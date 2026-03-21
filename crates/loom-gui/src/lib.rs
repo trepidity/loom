@@ -651,6 +651,154 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
+    // --- Task 18: show-export-dialog callback ---
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+
+        main_window.on_show_export_dialog(move || {
+            if let Some(win) = weak.upgrade() {
+                // Pre-fill base DN from selected tree node or connection base DN
+                let base_dn = {
+                    let state = conn_state.borrow();
+                    if let Some(ref s) = *state {
+                        let selected = win.get_tree_selected_index();
+                        if selected >= 0 && (selected as usize) < s.tree_meta.len() {
+                            s.tree_meta[selected as usize].dn.clone()
+                        } else if !s.tree_meta.is_empty() {
+                            s.tree_meta[0].dn.clone()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
+
+                win.set_export_base_dn(SharedString::from(&base_dn));
+                win.set_export_dialog_visible(true);
+            }
+        });
+    }
+
+    // --- Task 18: export-execute callback ---
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+
+        main_window.on_export_execute(move |base_dn, file_path, format_index| {
+            let base_dn = base_dn.to_string();
+            let file_path = file_path.to_string();
+
+            if file_path.is_empty() {
+                if let Some(win) = weak.upgrade() {
+                    win.set_status_message("Export failed: no file path specified".into());
+                    win.set_status_is_error(true);
+                }
+                return;
+            }
+
+            // Determine file extension from format index if not already present
+            let file_path = {
+                let path = std::path::Path::new(&file_path);
+                if path.extension().is_some() {
+                    file_path
+                } else {
+                    let ext = match format_index {
+                        1 => ".json",
+                        2 => ".csv",
+                        3 => ".xlsx",
+                        _ => ".ldif",
+                    };
+                    format!("{}{}", file_path, ext)
+                }
+            };
+
+            if let Some(win) = weak.upgrade() {
+                win.set_export_dialog_visible(false);
+                win.set_status_message(SharedString::from("Exporting..."));
+                win.set_status_is_error(false);
+            }
+
+            let weak = weak.clone();
+            let conn_state = conn_state.clone();
+
+            #[allow(clippy::await_holding_refcell_ref)]
+            slint::spawn_local(Compat::new(async move {
+                // Search for all entries under base_dn
+                let entries = {
+                    let mut state_ref = conn_state.borrow_mut();
+                    let state = match state_ref.as_mut() {
+                        Some(s) => s,
+                        None => {
+                            if let Some(win) = weak.upgrade() {
+                                win.set_status_message(
+                                    "Export failed: no active connection".into(),
+                                );
+                                win.set_status_is_error(true);
+                            }
+                            return;
+                        }
+                    };
+                    state
+                        .conn
+                        .search_subtree(&base_dn, "(objectClass=*)", &["*"])
+                        .await
+                };
+
+                match entries {
+                    Ok(entries) => {
+                        let path = std::path::Path::new(&file_path);
+                        match loom_core::export::export_entries(&entries, path, &[]) {
+                            Ok(count) => {
+                                info!("Exported {} entries to {}", count, &file_path);
+                                if let Some(win) = weak.upgrade() {
+                                    win.set_status_message(SharedString::from(format!(
+                                        "Exported {} entries to {}",
+                                        count, &file_path
+                                    )));
+                                    win.set_status_is_error(false);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Export failed: {}", e);
+                                if let Some(win) = weak.upgrade() {
+                                    win.set_status_message(SharedString::from(format!(
+                                        "Export failed: {}",
+                                        e
+                                    )));
+                                    win.set_status_is_error(true);
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Export search failed: {}", e);
+                        if let Some(win) = weak.upgrade() {
+                            win.set_status_message(SharedString::from(format!(
+                                "Export failed: {}",
+                                e
+                            )));
+                            win.set_status_is_error(true);
+                        }
+                    }
+                }
+            }))
+            .unwrap();
+        });
+    }
+
+    // --- Task 18: export-cancel callback ---
+    {
+        let weak = main_window.as_weak();
+
+        main_window.on_export_cancel(move || {
+            if let Some(win) = weak.upgrade() {
+                win.set_export_dialog_visible(false);
+            }
+        });
+    }
+
     // --- Task 11: Auto-connect to first profile if available ---
     {
         let config = config.borrow();

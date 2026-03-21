@@ -1,0 +1,146 @@
+import { AppTheme } from "theme.slint";
+import { LineEdit, ComboBox } from "std-widgets.slint";
+
+export component ExportDialog inherits Rectangle {
+    in-out property <bool> show: false;
+    in-out property <string> base-dn: "";
+    in-out property <string> file-path: "";
+    in-out property <int> format-index: 0;
+
+    callback export-clicked(string, string, int);
+    callback cancel-clicked();
+
+    // Full-screen overlay
+    width: 100%;
+    height: 100%;
+    background: root.show ? #00000088 : transparent;
+
+    if root.show : TouchArea {
+        clicked => { root.cancel-clicked(); }
+    }
+
+    if root.show : Rectangle {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        width: 450px;
+        height: 280px;
+        background: AppTheme.bg-secondary;
+        border-radius: AppTheme.border-radius;
+        border-width: 1px;
+        border-color: AppTheme.border;
+
+        // Block clicks from reaching the overlay TouchArea
+        TouchArea {}
+
+        VerticalLayout {
+            padding: AppTheme.padding;
+            spacing: AppTheme.spacing;
+
+            // Title
+            Text {
+                text: "Export Entries";
+                color: AppTheme.fg-primary;
+                font-size: 16px;
+                font-weight: 600;
+                horizontal-alignment: center;
+            }
+
+            // Base DN
+            HorizontalLayout {
+                spacing: AppTheme.spacing;
+                Text {
+                    text: "Base DN";
+                    color: AppTheme.fg-secondary;
+                    width: 80px;
+                    vertical-alignment: center;
+                }
+                LineEdit {
+                    text <=> root.base-dn;
+                    placeholder-text: "dc=example,dc=com";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // File path
+            HorizontalLayout {
+                spacing: AppTheme.spacing;
+                Text {
+                    text: "File Path";
+                    color: AppTheme.fg-secondary;
+                    width: 80px;
+                    vertical-alignment: center;
+                }
+                LineEdit {
+                    text <=> root.file-path;
+                    placeholder-text: "/path/to/export.ldif";
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // Format
+            HorizontalLayout {
+                spacing: AppTheme.spacing;
+                Text {
+                    text: "Format";
+                    color: AppTheme.fg-secondary;
+                    width: 80px;
+                    vertical-alignment: center;
+                }
+                format-combo := ComboBox {
+                    model: ["LDIF", "JSON", "CSV", "XLSX"];
+                    current-index <=> root.format-index;
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // Buttons
+            HorizontalLayout {
+                spacing: AppTheme.spacing;
+                alignment: end;
+
+                // Cancel button
+                Rectangle {
+                    width: 80px;
+                    height: 32px;
+                    background: cancel-ta.has-hover ? AppTheme.bg-hover : AppTheme.bg-tertiary;
+                    border-radius: AppTheme.border-radius;
+                    border-width: 1px;
+                    border-color: AppTheme.border;
+
+                    cancel-ta := TouchArea {
+                        clicked => { root.cancel-clicked(); }
+                    }
+
+                    Text {
+                        text: "Cancel";
+                        color: AppTheme.fg-secondary;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // Export button
+                Rectangle {
+                    width: 80px;
+                    height: 32px;
+                    background: export-ta.has-hover ? AppTheme.accent-hover : AppTheme.accent;
+                    border-radius: AppTheme.border-radius;
+
+                    export-ta := TouchArea {
+                        clicked => { root.export-clicked(root.base-dn, root.file-path, root.format-index); }
+                    }
+
+                    Text {
+                        text: "Export";
+                        color: #ffffff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
