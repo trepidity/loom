@@ -1,0 +1,73 @@
+import { AppTheme } from "theme.slint";
+import { ListView } from "std-widgets.slint";
+
+export struct TreeNode {
+    text: string,
+    indent-level: int,
+    expanded: bool,
+    has-children: bool,
+    is-loading: bool,
+    is-selected: bool,
+}
+
+export component TreeView inherits Rectangle {
+    in property <[TreeNode]> model: [];
+    in-out property <int> selected-index: -1;
+    callback toggle-expand(int);
+    callback node-selected(int);
+
+    background: AppTheme.bg-primary;
+
+    ListView {
+        for node[index] in root.model: Rectangle {
+            height: 28px;
+            background: node.is-selected ? AppTheme.bg-selected :
+                        row-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+            HorizontalLayout {
+                padding-left: node.indent-level * 1px * 20 + 4px;
+                spacing: 4px;
+                alignment: start;
+
+                // Expand/collapse indicator
+                Rectangle {
+                    width: 16px;
+                    height: 28px;
+
+                    Text {
+                        text: !node.has-children ? " " :
+                              node.is-loading ? "..." :
+                              node.expanded ? "v" : ">";
+                        color: AppTheme.fg-muted;
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    TouchArea {
+                        clicked => {
+                            if (node.has-children) {
+                                root.toggle-expand(index);
+                            }
+                        }
+                    }
+                }
+
+                // Node text
+                Text {
+                    text: node.text;
+                    color: node.is-selected ? AppTheme.accent : AppTheme.fg-primary;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+
+            row-touch := TouchArea {
+                clicked => {
+                    root.node-selected(index);
+                }
+            }
+        }
+    }
+}
