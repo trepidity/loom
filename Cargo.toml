@@ -4,6 +4,7 @@ members = [
     "crates/loom-ldapbrowser",
     "crates/loom-core",
     "crates/loom-tui",
+    "crates/loom-gui",
 ]
 
 [workspace.package]
@@ -80,6 +81,12 @@ chrono = { version = "0.4", features = ["serde"] }
 dirs = "6"
 strum = { version = "0.26", features = ["derive"] }
 
+# GUI
+slint = "1.14"
+slint-build = "1.14"
+async-compat = "0.2"
+
 # Internal
 loom-core = { path = "crates/loom-core" }
 loom-tui = { path = "crates/loom-tui" }
+loom-gui = { path = "crates/loom-gui" }

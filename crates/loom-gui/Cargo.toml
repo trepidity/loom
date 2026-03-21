@@ -1,0 +1,16 @@
+[package]
+name = "loom-gui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Slint-based graphical UI for loom LDAP browser"
+build = "build.rs"
+
+[dependencies]
+slint = { workspace = true }
+loom-core = { workspace = true }
+async-compat = { workspace = true }
+
+[build-dependencies]
+slint-build = { workspace = true }
