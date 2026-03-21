@@ -53,8 +53,9 @@ export component MainWindow inherits Window {
     in-out property <string> profile-dialog-base-dn: "";
     in-out property <string> profile-dialog-credential-method: "prompt";
     in-out property <string> profile-dialog-folder: "";
+    in-out property <string> profile-dialog-labels: "";
     callback new-profile-requested();
-    callback save-profile(string, string, int, string, string, string, string, string);
+    callback save-profile(string, string, int, string, string, string, string, string, string);
 
     // Detail
     in-out property <[AttributeRow]> attributes: [];
@@ -220,6 +221,7 @@ export component MainWindow inherits Window {
         base-dn <=> root.profile-dialog-base-dn;
         credential-method <=> root.profile-dialog-credential-method;
         folder <=> root.profile-dialog-folder;
+        labels <=> root.profile-dialog-labels;
         width: root.width;
         height: root.height;
 
@@ -233,6 +235,7 @@ export component MainWindow inherits Window {
                 root.profile-dialog-base-dn,
                 root.profile-dialog-credential-method,
                 root.profile-dialog-folder,
+                root.profile-dialog-labels,
             );
         }
 

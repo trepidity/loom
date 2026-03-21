@@ -546,6 +546,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 win.set_profile_dialog_base_dn(SharedString::default());
                 win.set_profile_dialog_credential_method("prompt".into());
                 win.set_profile_dialog_folder(SharedString::default());
+                win.set_profile_dialog_labels(SharedString::default());
                 win.set_profile_dialog_visible(true);
             }
         });
@@ -1038,6 +1039,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 win.set_profile_dialog_base_dn(SharedString::default());
                 win.set_profile_dialog_credential_method("prompt".into());
                 win.set_profile_dialog_folder(SharedString::default());
+                win.set_profile_dialog_labels(SharedString::default());
                 win.set_profile_dialog_visible(true);
             }
         });
@@ -1054,7 +1056,15 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let sidebar_model = sidebar_model.clone();
 
         main_window.on_save_profile(
-            move |name, host, port, tls_mode, bind_dn, base_dn, credential_method, folder| {
+            move |name,
+                  host,
+                  port,
+                  tls_mode,
+                  bind_dn,
+                  base_dn,
+                  credential_method,
+                  folder,
+                  labels| {
                 let tls = match tls_mode.as_str() {
                     "ldaps" => TlsMode::Ldaps,
                     "starttls" => TlsMode::StartTls,
@@ -1096,7 +1106,12 @@ pub fn run() -> Result<(), slint::PlatformError> {
                     },
                     read_only: false,
                     offline: false,
-                    labels: vec![],
+                    labels: labels
+                        .to_string()
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect(),
                 };
 
                 let profile_name = profile.name.clone();
