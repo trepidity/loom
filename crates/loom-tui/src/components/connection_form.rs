@@ -290,6 +290,7 @@ impl ConnectionForm {
             relax_rules: self.relax_rules,
             read_only: self.read_only,
             offline: false,
+            labels: vec![],
         })
     }
 

@@ -213,6 +213,7 @@ impl NewConnectionDialog {
             folder: None,
             read_only: false,
             offline: false,
+            labels: vec![],
         };
 
         let password = self.password.clone();

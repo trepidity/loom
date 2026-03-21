@@ -567,6 +567,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                     },
                     read_only: false,
                     offline: false,
+                    labels: vec![],
                 };
 
                 let profile_name = profile.name.clone();
@@ -1078,12 +1079,73 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
-    // --- Task 11: Auto-connect to first profile if available ---
+    // --- Connect dialog: show ---
     {
-        let config = config.borrow();
-        if !config.connections.is_empty() {
-            main_window.invoke_connect_profile(0);
-        }
+        let weak = main_window.as_weak();
+        let config = config.clone();
+        main_window.on_show_connect_dialog(move || {
+            if let Some(win) = weak.upgrade() {
+                let config = config.borrow();
+                let profiles: Vec<ConnectProfile> = config
+                    .connections
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| ConnectProfile {
+                        name: SharedString::from(p.name.clone()),
+                        host: SharedString::from(p.host.clone()),
+                        index: i as i32,
+                    })
+                    .collect();
+                let model = Rc::new(VecModel::from(profiles));
+                win.set_connect_profiles(model.into());
+                win.set_connect_dialog_visible(true);
+            }
+        });
+    }
+
+    // --- Connect dialog: profile selected ---
+    {
+        let weak = main_window.as_weak();
+        main_window.on_connect_dialog_selected(move |index| {
+            if let Some(win) = weak.upgrade() {
+                win.set_connect_dialog_visible(false);
+                win.invoke_connect_profile(index);
+            }
+        });
+    }
+
+    // --- Connect dialog: cancel ---
+    {
+        let weak = main_window.as_weak();
+        main_window.on_connect_dialog_cancel(move || {
+            if let Some(win) = weak.upgrade() {
+                win.set_connect_dialog_visible(false);
+            }
+        });
+    }
+
+    // --- Menu bar: disconnect ---
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+        let tabs_model = tabs_model.clone();
+        let tree_model = tree_model.clone();
+        let attr_model = attr_model.clone();
+        main_window.on_menu_disconnect(move || {
+            if let Some(win) = weak.upgrade() {
+                // Drop the connection
+                *conn_state.borrow_mut() = None;
+                // Clear UI
+                tree_model.set_vec(vec![]);
+                attr_model.set_vec(vec![]);
+                tabs_model.set_vec(vec![]);
+                win.set_active_tab(-1);
+                win.set_entry_dn(SharedString::default());
+                win.set_tree_selected_index(-1);
+                win.set_status_message(SharedString::from("Disconnected"));
+                win.set_status_is_error(false);
+            }
+        });
     }
 
     main_window.run()

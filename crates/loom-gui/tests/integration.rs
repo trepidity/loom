@@ -42,6 +42,7 @@ fn test_connection_profile_construction() {
         folder: None,
         read_only: false,
         offline: false,
+        labels: vec![],
     };
 
     assert_eq!(profile.name, "Test Server");
@@ -67,6 +68,7 @@ fn test_connection_profile_to_settings() {
         folder: None,
         read_only: false,
         offline: false,
+        labels: vec![],
     };
 
     let settings = profile.to_connection_settings();

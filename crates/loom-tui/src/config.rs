@@ -33,6 +33,8 @@ pub struct ConnectionProfile {
     pub read_only: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub offline: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub labels: Vec<String>,
 }
 
 fn is_false(v: &bool) -> bool {
@@ -389,6 +391,7 @@ timeout_secs = 60
             folder: None,
             read_only: false,
             offline: false,
+            labels: vec![],
         };
 
         let settings = profile.to_connection_settings();
@@ -458,6 +461,7 @@ host = "localhost"
                 folder: None,
                 read_only: false,
                 offline: false,
+                labels: vec![],
             },
             ConnectionProfile {
                 name: "Staging".to_string(),
@@ -474,6 +478,7 @@ host = "localhost"
                 folder: None,
                 read_only: false,
                 offline: false,
+                labels: vec![],
             },
         ];
 
@@ -608,6 +613,7 @@ description = ""
             folder: None,
             read_only: false,
             offline: false,
+            labels: vec![],
         }];
 
         let exported = AppConfig::export_profiles(&profiles).unwrap();

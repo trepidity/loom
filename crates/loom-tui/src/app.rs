@@ -2881,5 +2881,6 @@ fn example_profile() -> ConnectionProfile {
         folder: None,
         read_only: false,
         offline: true,
+        labels: vec![],
     }
 }

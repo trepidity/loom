@@ -9,6 +9,7 @@ import { CredentialDialog } from "credential-dialog.slint";
 import { ExportDialog } from "export-dialog.slint";
 import { SearchDialog, SearchResult } from "search-dialog.slint";
 import { ThemeSelector } from "theme-selector.slint";
+import { ConnectDialog, ConnectProfile } from "connect-dialog.slint";
 
 export { AppTheme }
 
@@ -87,7 +88,15 @@ export component MainWindow inherits Window {
 
     // Menu bar
     callback menu-quit();
+    callback menu-disconnect();
+    callback show-connect-dialog();
     callback show-about();
+
+    // Connect dialog
+    in-out property <bool> connect-dialog-visible: false;
+    in-out property <[ConnectProfile]> connect-profiles: [];
+    callback connect-dialog-selected(int);
+    callback connect-dialog-cancel();
 
     // Export dialog
     in-out property <bool> export-dialog-visible: false;
@@ -100,7 +109,20 @@ export component MainWindow inherits Window {
         Menu {
             title: "Profiles";
             MenuItem {
+                title: "Connect...";
+                activated => { root.show-connect-dialog(); }
+            }
+            MenuItem {
+                title: "Disconnect";
+                activated => { root.menu-disconnect(); }
+            }
+            MenuSeparator {}
+            MenuItem {
                 title: "New Profile...";
+                activated => { root.new-profile-requested(); }
+            }
+            MenuItem {
+                title: "Edit Profiles...";
                 activated => { root.new-profile-requested(); }
             }
             MenuSeparator {}
@@ -308,6 +330,23 @@ export component MainWindow inherits Window {
 
         theme-selected(theme-name) => {
             root.change-theme(theme-name);
+        }
+    }
+
+    // Connect dialog overlay
+    ConnectDialog {
+        show <=> root.connect-dialog-visible;
+        profiles <=> root.connect-profiles;
+        width: root.width;
+        height: root.height;
+
+        profile-selected(index) => {
+            root.connect-dialog-selected(index);
+        }
+
+        cancel-clicked => {
+            root.connect-dialog-visible = false;
+            root.connect-dialog-cancel();
         }
     }
 }

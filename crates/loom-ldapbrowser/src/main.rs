@@ -89,6 +89,7 @@ async fn main() -> Result<()> {
             folder: None,
             read_only: false,
             offline: false,
+            labels: vec![],
         };
         config.connections.insert(0, profile);
     }
