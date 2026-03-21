@@ -1,0 +1,161 @@
+import { AppTheme } from "theme.slint";
+import { LineEdit, ListView } from "std-widgets.slint";
+
+export struct SidebarProfile {
+    name: string,
+    host: string,
+    index: int,
+    labels: string,
+    is-connected: bool,
+    is-active: bool,
+    indent-level: int,
+    is-folder: bool,
+    is-expanded: bool,
+}
+
+export component ProfileSidebar inherits Rectangle {
+    in property <[SidebarProfile]> model: [];
+    in-out property <string> filter-text: "";
+    callback profile-clicked(int);
+    callback folder-toggled(int);
+    callback filter-changed(string);
+    callback new-profile-clicked();
+
+    background: AppTheme.bg-secondary;
+
+    VerticalLayout {
+        padding: 8px;
+        spacing: 4px;
+
+        // Header
+        Text {
+            text: "Profiles";
+            color: AppTheme.fg-muted;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            horizontal-alignment: left;
+        }
+
+        // Filter input
+        LineEdit {
+            height: 28px;
+            placeholder-text: "Filter...";
+            text <=> root.filter-text;
+            edited(value) => {
+                root.filter-changed(value);
+            }
+        }
+
+        // Profile list
+        ListView {
+            vertical-stretch: 1;
+
+            for item[idx] in root.model: Rectangle {
+                height: item.is-folder ? 28px : 40px;
+                border-radius: AppTheme.border-radius;
+                background: item.is-active ? AppTheme.bg-selected :
+                            row-touch.has-hover ? AppTheme.bg-hover : transparent;
+
+                row-touch := TouchArea {
+                    clicked => {
+                        if (item.is-folder) {
+                            root.folder-toggled(idx);
+                        } else {
+                            root.profile-clicked(idx);
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    padding-left: item.indent-level * 1px * 16 + 4px;
+                    padding-right: 4px;
+                    spacing: 4px;
+                    alignment: start;
+
+                    if item.is-folder: Rectangle {
+                        width: 16px;
+                        height: 28px;
+
+                        Text {
+                            text: item.is-expanded ? "v" : ">";
+                            color: AppTheme.fg-muted;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    if item.is-folder: Text {
+                        text: item.name;
+                        color: AppTheme.fg-primary;
+                        font-size: 13px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    if !item.is-folder: Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: item.is-connected ? AppTheme.success : AppTheme.fg-muted;
+                    }
+
+                    if !item.is-folder: VerticalLayout {
+                        horizontal-stretch: 1;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
+                        spacing: 2px;
+
+                        Text {
+                            text: item.name;
+                            color: item.is-active ? AppTheme.accent : AppTheme.fg-primary;
+                            font-size: 13px;
+                            overflow: elide;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 4px;
+
+                            Text {
+                                text: item.host;
+                                color: AppTheme.fg-muted;
+                                font-size: 11px;
+                                overflow: elide;
+                            }
+
+                            if item.labels != "": Text {
+                                text: item.labels;
+                                color: AppTheme.accent;
+                                font-size: 10px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // New Profile button
+        Rectangle {
+            height: 32px;
+            border-radius: AppTheme.border-radius;
+            background: new-touch.has-hover ? AppTheme.bg-hover : AppTheme.bg-tertiary;
+
+            new-touch := TouchArea {
+                clicked => {
+                    root.new-profile-clicked();
+                }
+            }
+
+            Text {
+                text: "+ New";
+                color: AppTheme.fg-secondary;
+                font-size: 13px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

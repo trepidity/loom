@@ -1,6 +1,6 @@
 import { AppTheme } from "theme.slint";
 import { StatusBar } from "status-bar.slint";
-import { TabBar, TabInfo } from "tab-bar.slint";
+import { ProfileSidebar, SidebarProfile } from "profile-sidebar.slint";
 import { TreeView, TreeNode } from "tree-view.slint";
 import { DetailPanel, AttributeRow } from "detail-panel.slint";
 import { ProfileDialog } from "profile-dialog.slint";
@@ -9,7 +9,6 @@ import { CredentialDialog } from "credential-dialog.slint";
 import { ExportDialog } from "export-dialog.slint";
 import { SearchDialog, SearchResult } from "search-dialog.slint";
 import { ThemeSelector } from "theme-selector.slint";
-import { ConnectDialog, ConnectProfile } from "connect-dialog.slint";
 
 export { AppTheme }
 
@@ -23,11 +22,16 @@ export component MainWindow inherits Window {
     in-out property <string> status-message: "Ready";
     in-out property <bool> status-is-error: false;
 
-    // Tabs
-    in-out property <[TabInfo]> tabs: [];
-    in-out property <int> active-tab: -1;
-    callback tab-clicked(int);
-    callback close-tab(int);
+    // Sidebar
+    in-out property <[SidebarProfile]> sidebar-model: [];
+    in-out property <string> sidebar-filter: "";
+    in-out property <bool> sidebar-visible: true;
+    in-out property <bool> has-active-connection: false;
+    callback sidebar-profile-clicked(int);
+    callback sidebar-folder-toggled(int);
+    callback sidebar-filter-changed(string);
+    callback sidebar-new-profile();
+    callback toggle-sidebar();
 
     // Tree
     in-out property <[TreeNode]> tree-model: [];
@@ -87,16 +91,8 @@ export component MainWindow inherits Window {
     callback change-theme(string);
 
     // Menu bar
-    callback menu-quit();
     callback menu-disconnect();
-    callback show-connect-dialog();
     callback show-about();
-
-    // Connect dialog
-    in-out property <bool> connect-dialog-visible: false;
-    in-out property <[ConnectProfile]> connect-profiles: [];
-    callback connect-dialog-selected(int);
-    callback connect-dialog-cancel();
 
     // Export dialog
     in-out property <bool> export-dialog-visible: false;
@@ -109,26 +105,12 @@ export component MainWindow inherits Window {
         Menu {
             title: "Profiles";
             MenuItem {
-                title: "Connect...";
-                activated => { root.show-connect-dialog(); }
-            }
-            MenuItem {
-                title: "Disconnect";
-                activated => { root.menu-disconnect(); }
-            }
-            MenuSeparator {}
-            MenuItem {
                 title: "New Profile...";
                 activated => { root.new-profile-requested(); }
             }
             MenuItem {
-                title: "Edit Profiles...";
-                activated => { root.new-profile-requested(); }
-            }
-            MenuSeparator {}
-            MenuItem {
-                title: "Quit";
-                activated => { root.menu-quit(); }
+                title: "Disconnect";
+                activated => { root.menu-disconnect(); }
             }
         }
         Menu {
@@ -146,6 +128,11 @@ export component MainWindow inherits Window {
         Menu {
             title: "View";
             MenuItem {
+                title: "Toggle Sidebar";
+                activated => { root.sidebar-visible = !root.sidebar-visible; }
+            }
+            MenuSeparator {}
+            MenuItem {
                 title: "Theme...";
                 activated => { root.show-theme-selector(); }
             }
@@ -160,50 +147,58 @@ export component MainWindow inherits Window {
     }
 
     VerticalLayout {
-        TabBar {
-            height: 36px;
-            tabs: root.tabs;
-            active-tab: root.active-tab;
-            tab-clicked(index) => { root.tab-clicked(index); }
-            close-tab(index) => { root.close-tab(index); }
-        }
-
-        // Main content - empty state
-        if root.tabs.length == 0 : Rectangle {
-            vertical-stretch: 1;
-            background: AppTheme.bg-primary;
-
-            Text {
-                text: "No connections. Use Profiles > New Profile to get started.";
-                color: AppTheme.fg-muted;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                font-size: 14px;
-            }
-        }
-
-        // Main content - tree + detail split
-        if root.tabs.length > 0 : HorizontalLayout {
+        HorizontalLayout {
             vertical-stretch: 1;
 
-            TreeView {
-                model: root.tree-model;
-                selected-index: root.tree-selected-index;
-                horizontal-stretch: 1;
-                toggle-expand(index) => { root.tree-toggle-expand(index); }
-                node-selected(index) => { root.tree-node-selected(index); }
+            // Sidebar (conditionally visible)
+            if root.sidebar-visible: ProfileSidebar {
+                width: 220px;
+                model: root.sidebar-model;
+                filter-text <=> root.sidebar-filter;
+                profile-clicked(index) => { root.sidebar-profile-clicked(index); }
+                folder-toggled(index) => { root.sidebar-folder-toggled(index); }
+                filter-changed(text) => { root.sidebar-filter-changed(text); }
+                new-profile-clicked => { root.sidebar-new-profile(); }
             }
 
-            // Divider
-            Rectangle {
+            // Sidebar divider
+            if root.sidebar-visible: Rectangle {
                 width: 1px;
                 background: AppTheme.border;
             }
 
-            DetailPanel {
+            // Content area - empty state
+            if !root.has-active-connection: Rectangle {
+                horizontal-stretch: 1;
+                background: AppTheme.bg-primary;
+
+                Text {
+                    text: "No active connection.\nSelect a profile or create a new one.";
+                    color: AppTheme.fg-muted;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    font-size: 14px;
+                }
+            }
+
+            // Content area - tree + detail split
+            if root.has-active-connection: TreeView {
+                horizontal-stretch: 1;
+                model: root.tree-model;
+                selected-index: root.tree-selected-index;
+                toggle-expand(index) => { root.tree-toggle-expand(index); }
+                node-selected(index) => { root.tree-node-selected(index); }
+            }
+
+            if root.has-active-connection: Rectangle {
+                width: 1px;
+                background: AppTheme.border;
+            }
+
+            if root.has-active-connection: DetailPanel {
+                horizontal-stretch: 2;
                 attributes: root.attributes;
                 entry-dn: root.entry-dn;
-                horizontal-stretch: 2;
             }
         }
 
@@ -213,7 +208,7 @@ export component MainWindow inherits Window {
         }
     }
 
-    // Profile dialog overlay (drawn on top of everything)
+    // Profile dialog overlay
     ProfileDialog {
         show <=> root.profile-dialog-visible;
         dialog-title <=> root.profile-dialog-title;
@@ -246,7 +241,7 @@ export component MainWindow inherits Window {
         }
     }
 
-    // Vault dialog overlay (highest z-order, drawn on top of everything)
+    // Vault dialog overlay
     VaultDialog {
         show <=> root.vault-dialog-visible;
         error-text <=> root.vault-error;
@@ -330,23 +325,6 @@ export component MainWindow inherits Window {
 
         theme-selected(theme-name) => {
             root.change-theme(theme-name);
-        }
-    }
-
-    // Connect dialog overlay
-    ConnectDialog {
-        show <=> root.connect-dialog-visible;
-        profiles <=> root.connect-profiles;
-        width: root.width;
-        height: root.height;
-
-        profile-selected(index) => {
-            root.connect-dialog-selected(index);
-        }
-
-        cancel-clicked => {
-            root.connect-dialog-visible = false;
-            root.connect-dialog-cancel();
         }
     }
 }
