@@ -799,6 +799,225 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
+    // --- Task 17: show-search-dialog callback ---
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+
+        main_window.on_show_search_dialog(move || {
+            if let Some(win) = weak.upgrade() {
+                // Pre-fill base DN from connection state
+                let base_dn = {
+                    let state = conn_state.borrow();
+                    if let Some(ref s) = *state {
+                        let selected = win.get_tree_selected_index();
+                        if selected >= 0 && (selected as usize) < s.tree_meta.len() {
+                            s.tree_meta[selected as usize].dn.clone()
+                        } else if !s.tree_meta.is_empty() {
+                            s.tree_meta[0].dn.clone()
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                };
+
+                win.set_search_base_dn(SharedString::from(&base_dn));
+                win.set_search_filter("(objectClass=*)".into());
+                win.set_search_scope_index(0);
+                win.set_search_results(ModelRc::from(Rc::new(VecModel::<SearchResult>::default())));
+                win.set_search_dialog_visible(true);
+            }
+        });
+    }
+
+    // --- Task 17: search-execute callback ---
+    // Shared search results DN list for result selection
+    let search_result_dns: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+        let search_result_dns = search_result_dns.clone();
+
+        main_window.on_search_execute(move |base_dn, filter, scope_index| {
+            let base_dn = base_dn.to_string();
+            let filter = filter.to_string();
+
+            if let Some(win) = weak.upgrade() {
+                win.set_status_message("Searching...".into());
+                win.set_status_is_error(false);
+            }
+
+            let weak = weak.clone();
+            let conn_state = conn_state.clone();
+            let search_result_dns = search_result_dns.clone();
+
+            #[allow(clippy::await_holding_refcell_ref)]
+            slint::spawn_local(Compat::new(async move {
+                let scope = match scope_index {
+                    1 => loom_core::Scope::OneLevel,
+                    2 => loom_core::Scope::Base,
+                    _ => loom_core::Scope::Subtree,
+                };
+
+                let results = {
+                    let mut state_ref = conn_state.borrow_mut();
+                    let state = match state_ref.as_mut() {
+                        Some(s) => s,
+                        None => {
+                            if let Some(win) = weak.upgrade() {
+                                win.set_status_message(
+                                    "Search failed: no active connection".into(),
+                                );
+                                win.set_status_is_error(true);
+                            }
+                            return;
+                        }
+                    };
+                    state.conn.search(&base_dn, scope, &filter, &["dn"]).await
+                };
+
+                match results {
+                    Ok(entries) => {
+                        let count = entries.len();
+                        let mut dns = Vec::with_capacity(count);
+                        let results_model = Rc::new(VecModel::<SearchResult>::default());
+
+                        for entry in &entries {
+                            dns.push(entry.dn.clone());
+                            results_model.push(SearchResult {
+                                text: SharedString::from(&entry.dn),
+                            });
+                        }
+
+                        *search_result_dns.borrow_mut() = dns;
+
+                        if let Some(win) = weak.upgrade() {
+                            win.set_search_results(ModelRc::from(results_model));
+                            win.set_status_message(SharedString::from(format!(
+                                "Found {} entries",
+                                count
+                            )));
+                            win.set_status_is_error(false);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Search failed: {}", e);
+                        if let Some(win) = weak.upgrade() {
+                            win.set_status_message(SharedString::from(format!(
+                                "Search failed: {}",
+                                e
+                            )));
+                            win.set_status_is_error(true);
+                        }
+                    }
+                }
+            }))
+            .unwrap();
+        });
+    }
+
+    // --- Task 17: search-result-selected callback ---
+    {
+        let weak = main_window.as_weak();
+        let conn_state = conn_state.clone();
+        let attr_model = attr_model.clone();
+        let search_result_dns = search_result_dns.clone();
+
+        main_window.on_search_result_selected(move |index| {
+            let dn = {
+                let dns = search_result_dns.borrow();
+                let idx = index as usize;
+                if idx >= dns.len() {
+                    return;
+                }
+                dns[idx].clone()
+            };
+
+            if let Some(win) = weak.upgrade() {
+                win.set_search_dialog_visible(false);
+                win.set_entry_dn(SharedString::from(&dn));
+            }
+
+            // Fetch attributes for the selected DN
+            let weak = weak.clone();
+            let conn_state = conn_state.clone();
+            let attr_model = attr_model.clone();
+
+            #[allow(clippy::await_holding_refcell_ref)]
+            slint::spawn_local(Compat::new(async move {
+                let entry = {
+                    let mut state_ref = conn_state.borrow_mut();
+                    let state = match state_ref.as_mut() {
+                        Some(s) => s,
+                        None => return,
+                    };
+                    state.conn.search_entry(&dn).await
+                };
+
+                match entry {
+                    Ok(Some(entry)) => {
+                        while attr_model.row_count() > 0 {
+                            attr_model.remove(0);
+                        }
+
+                        for (name, values) in &entry.attributes {
+                            if values.len() == 1 {
+                                attr_model.push(AttributeRow {
+                                    name: SharedString::from(name.as_str()),
+                                    value: SharedString::from(values[0].as_str()),
+                                });
+                            } else {
+                                for val in values {
+                                    attr_model.push(AttributeRow {
+                                        name: SharedString::from(name.as_str()),
+                                        value: SharedString::from(val.as_str()),
+                                    });
+                                }
+                            }
+                        }
+
+                        if let Some(win) = weak.upgrade() {
+                            win.set_entry_dn(SharedString::from(&entry.dn));
+                        }
+                    }
+                    Ok(None) => {
+                        while attr_model.row_count() > 0 {
+                            attr_model.remove(0);
+                        }
+                        if let Some(win) = weak.upgrade() {
+                            win.set_status_message("Entry not found".into());
+                            win.set_status_is_error(true);
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to fetch entry {}: {}", dn, e);
+                        if let Some(win) = weak.upgrade() {
+                            win.set_status_message(SharedString::from(format!(
+                                "Failed to load entry: {}",
+                                e
+                            )));
+                            win.set_status_is_error(true);
+                        }
+                    }
+                }
+            }))
+            .unwrap();
+        });
+    }
+
+    // --- Task 17: search-cancel callback ---
+    {
+        let weak = main_window.as_weak();
+
+        main_window.on_search_cancel(move || {
+            if let Some(win) = weak.upgrade() {
+                win.set_search_dialog_visible(false);
+            }
+        });
+    }
+
     // --- Task 11: Auto-connect to first profile if available ---
     {
         let config = config.borrow();

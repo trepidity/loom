@@ -74,7 +74,7 @@ impl LdapConnection {
     }
 
     /// Perform a paged LDAP search.
-    async fn search(
+    pub async fn search(
         &mut self,
         base_dn: &str,
         scope: Scope,

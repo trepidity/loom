@@ -18,3 +18,5 @@ pub mod tls;
 pub mod tree;
 pub mod util;
 pub mod vault;
+
+pub use ldap3::Scope;

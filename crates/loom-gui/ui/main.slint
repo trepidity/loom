@@ -8,6 +8,7 @@ import { VaultDialog } from "vault-dialog.slint";
 import { CredentialDialog } from "credential-dialog.slint";
 import { ExportDialog } from "export-dialog.slint";
 import { SearchDialog, SearchResult } from "search-dialog.slint";
+import { ThemeSelector } from "theme-selector.slint";
 
 export { AppTheme }
 
@@ -78,6 +79,12 @@ export component MainWindow inherits Window {
     callback search-result-selected(int);
     callback search-cancel();
 
+    // Theme selector
+    in-out property <bool> theme-selector-visible: false;
+    in-out property <string> current-theme: "dark";
+    callback show-theme-selector();
+    callback change-theme(string);
+
     // Export dialog
     in-out property <bool> export-dialog-visible: false;
     in-out property <string> export-base-dn: "";
@@ -86,11 +93,39 @@ export component MainWindow inherits Window {
     callback export-cancel();
 
     VerticalLayout {
-        TabBar {
-            tabs: root.tabs;
-            active-tab: root.active-tab;
-            tab-clicked(index) => { root.tab-clicked(index); }
-            close-tab(index) => { root.close-tab(index); }
+        HorizontalLayout {
+            height: 36px;
+
+            TabBar {
+                horizontal-stretch: 1;
+                tabs: root.tabs;
+                active-tab: root.active-tab;
+                tab-clicked(index) => { root.tab-clicked(index); }
+                close-tab(index) => { root.close-tab(index); }
+            }
+
+            // Theme button
+            Rectangle {
+                width: 64px;
+                height: 36px;
+                background: theme-btn-touch.has-hover ? AppTheme.bg-hover : AppTheme.bg-secondary;
+                border-width: 1px;
+                border-color: AppTheme.border;
+
+                theme-btn-touch := TouchArea {
+                    clicked => {
+                        root.show-theme-selector();
+                    }
+                }
+
+                Text {
+                    text: "Theme";
+                    color: AppTheme.fg-secondary;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
         }
 
         // Main content - empty state

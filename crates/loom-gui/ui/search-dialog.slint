@@ -1,0 +1,183 @@
+import { AppTheme } from "theme.slint";
+import { LineEdit, ComboBox, ListView } from "std-widgets.slint";
+
+export struct SearchResult {
+    text: string,
+}
+
+export component SearchDialog inherits Rectangle {
+    in-out property <bool> show: false;
+    in-out property <string> base-dn: "";
+    in-out property <string> filter: "(objectClass=*)";
+    in-out property <int> scope-index: 0;
+    in-out property <[SearchResult]> results: [];
+
+    callback search-clicked(string, string, int);
+    callback result-selected(int);
+    callback cancel-clicked();
+
+    // Full-screen overlay
+    width: 100%;
+    height: 100%;
+    background: root.show ? #00000088 : transparent;
+
+    if root.show : TouchArea {
+        clicked => { root.cancel-clicked(); }
+    }
+
+    if root.show : Rectangle {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        width: 500px;
+        height: 480px;
+        background: AppTheme.bg-secondary;
+        border-radius: AppTheme.border-radius;
+        border-width: 1px;
+        border-color: AppTheme.border;
+
+        // Block clicks from reaching the overlay TouchArea
+        TouchArea {}
+
+        VerticalLayout {
+            padding: AppTheme.padding;
+            spacing: AppTheme.spacing;
+
+            // Title
+            Text {
+                text: "LDAP Search";
+                color: AppTheme.fg-primary;
+                font-size: 16px;
+                font-weight: 600;
+                horizontal-alignment: center;
+            }
+
+            // Base DN
+            Text {
+                text: "Base DN";
+                color: AppTheme.fg-secondary;
+                font-size: 12px;
+            }
+            base-dn-input := LineEdit {
+                placeholder-text: "dc=example,dc=com";
+                text <=> root.base-dn;
+            }
+
+            // Filter
+            Text {
+                text: "Filter";
+                color: AppTheme.fg-secondary;
+                font-size: 12px;
+            }
+            filter-input := LineEdit {
+                placeholder-text: "(objectClass=*)";
+                text <=> root.filter;
+                accepted => {
+                    root.search-clicked(root.base-dn, root.filter, root.scope-index);
+                }
+            }
+
+            // Scope
+            Text {
+                text: "Scope";
+                color: AppTheme.fg-secondary;
+                font-size: 12px;
+            }
+            scope-combo := ComboBox {
+                model: ["Subtree", "One Level", "Base"];
+                current-index <=> root.scope-index;
+            }
+
+            // Buttons
+            HorizontalLayout {
+                spacing: AppTheme.spacing;
+                alignment: end;
+
+                // Cancel button
+                Rectangle {
+                    width: 80px;
+                    height: 32px;
+                    background: cancel-ta.has-hover ? AppTheme.bg-hover : AppTheme.bg-tertiary;
+                    border-radius: AppTheme.border-radius;
+                    border-width: 1px;
+                    border-color: AppTheme.border;
+
+                    cancel-ta := TouchArea {
+                        clicked => { root.cancel-clicked(); }
+                    }
+
+                    Text {
+                        text: "Cancel";
+                        color: AppTheme.fg-secondary;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // Search button
+                Rectangle {
+                    width: 80px;
+                    height: 32px;
+                    background: search-ta.has-hover ? AppTheme.accent-hover : AppTheme.accent;
+                    border-radius: AppTheme.border-radius;
+
+                    search-ta := TouchArea {
+                        clicked => {
+                            root.search-clicked(root.base-dn, root.filter, root.scope-index);
+                        }
+                    }
+
+                    Text {
+                        text: "Search";
+                        color: #ffffff;
+                        font-size: 13px;
+                        font-weight: 600;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Results label
+            Text {
+                text: root.results.length > 0 ? "Results (" + root.results.length + ")" : "Results";
+                color: AppTheme.fg-secondary;
+                font-size: 12px;
+            }
+
+            // Results list
+            Rectangle {
+                vertical-stretch: 1;
+                background: AppTheme.bg-primary;
+                border-radius: AppTheme.border-radius;
+                border-width: 1px;
+                border-color: AppTheme.border;
+                clip: true;
+
+                ListView {
+                    for result[index] in root.results : Rectangle {
+                        height: 28px;
+                        background: result-ta.has-hover ? AppTheme.bg-hover : transparent;
+
+                        result-ta := TouchArea {
+                            clicked => { root.result-selected(index); }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            padding-right: 8px;
+
+                            Text {
+                                text: result.text;
+                                color: AppTheme.fg-primary;
+                                font-size: 12px;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
