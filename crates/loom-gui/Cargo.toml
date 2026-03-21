@@ -11,6 +11,7 @@ build = "build.rs"
 slint = { workspace = true }
 loom-core = { workspace = true }
 async-compat = { workspace = true }
+tracing = { workspace = true }
 
 [build-dependencies]
 slint-build = { workspace = true }

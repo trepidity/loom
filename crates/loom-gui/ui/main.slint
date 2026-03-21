@@ -28,6 +28,9 @@ export component MainWindow inherits Window {
     callback tree-toggle-expand(int);
     callback tree-node-selected(int);
 
+    // Profiles
+    callback connect-profile(int);
+
     // Detail
     in-out property <[AttributeRow]> attributes: [];
     in-out property <string> entry-dn: "";
