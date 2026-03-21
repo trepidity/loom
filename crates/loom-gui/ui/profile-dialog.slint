@@ -1,0 +1,238 @@
+import { AppTheme } from "theme.slint";
+import { LineEdit, ComboBox } from "std-widgets.slint";
+
+export component ProfileDialog inherits Rectangle {
+    in-out property <bool> show: false;
+    in-out property <string> dialog-title: "New Profile";
+
+    // Field values
+    in-out property <string> profile-name: "";
+    in-out property <string> host: "";
+    in-out property <string> port: "389";
+    in-out property <string> tls-mode: "auto";
+    in-out property <string> bind-dn: "";
+    in-out property <string> base-dn: "";
+    in-out property <string> credential-method: "prompt";
+    in-out property <string> folder: "";
+
+    callback save-clicked();
+    callback cancel-clicked();
+
+    // Backdrop
+    if root.show : Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000088;
+
+        TouchArea {
+            clicked => { root.cancel-clicked(); }
+        }
+
+        // Centered dialog card
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 500px;
+            height: dialog-layout.preferred-height + 2 * AppTheme.padding;
+            background: AppTheme.bg-secondary;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: AppTheme.border;
+
+            // Block clicks from closing dialog
+            TouchArea {}
+
+            dialog-layout := VerticalLayout {
+                padding: AppTheme.padding;
+                spacing: AppTheme.spacing;
+
+                // Title
+                Text {
+                    text: root.dialog-title;
+                    color: AppTheme.fg-primary;
+                    font-size: 16px;
+                    font-weight: 600;
+                    horizontal-alignment: left;
+                }
+
+                // Name
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Name";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.profile-name;
+                        placeholder-text: "My Server";
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Host
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Host";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.host;
+                        placeholder-text: "ldap.example.com";
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Port
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Port";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.port;
+                        placeholder-text: "389";
+                        input-type: InputType.number;
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // TLS Mode
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "TLS Mode";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    ComboBox {
+                        model: ["auto", "ldaps", "starttls", "none"];
+                        current-value <=> root.tls-mode;
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Bind DN
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Bind DN";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.bind-dn;
+                        placeholder-text: "cn=admin,dc=example,dc=com (optional)";
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Base DN
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Base DN";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.base-dn;
+                        placeholder-text: "dc=example,dc=com (optional)";
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Credential Method
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Credentials";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    ComboBox {
+                        model: ["prompt", "command", "keychain", "vault"];
+                        current-value <=> root.credential-method;
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Folder
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    Text {
+                        text: "Folder";
+                        color: AppTheme.fg-secondary;
+                        width: 120px;
+                        vertical-alignment: center;
+                    }
+                    LineEdit {
+                        text <=> root.folder;
+                        placeholder-text: "Group name (optional)";
+                        horizontal-stretch: 1;
+                    }
+                }
+
+                // Buttons
+                Rectangle { height: 8px; }
+
+                HorizontalLayout {
+                    spacing: AppTheme.spacing;
+                    alignment: end;
+
+                    // Cancel button
+                    Rectangle {
+                        width: 80px;
+                        height: 32px;
+                        border-radius: AppTheme.border-radius;
+                        background: cancel-touch.has-hover ? AppTheme.bg-hover : AppTheme.bg-tertiary;
+                        border-width: 1px;
+                        border-color: AppTheme.border;
+
+                        cancel-touch := TouchArea {
+                            clicked => { root.cancel-clicked(); }
+                        }
+
+                        Text {
+                            text: "Cancel";
+                            color: AppTheme.fg-secondary;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Save button
+                    Rectangle {
+                        width: 80px;
+                        height: 32px;
+                        border-radius: AppTheme.border-radius;
+                        background: save-touch.has-hover ? AppTheme.accent-hover : AppTheme.accent;
+
+                        save-touch := TouchArea {
+                            clicked => { root.save-clicked(); }
+                        }
+
+                        Text {
+                            text: "Save";
+                            color: #ffffff;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

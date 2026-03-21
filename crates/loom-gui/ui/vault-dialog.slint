@@ -1,0 +1,131 @@
+import { AppTheme } from "theme.slint";
+import { LineEdit } from "std-widgets.slint";
+
+export component VaultDialog inherits Rectangle {
+    in-out property <bool> show: false;
+    in-out property <string> password: "";
+    in-out property <string> error-text: "";
+
+    callback unlock-clicked(string);
+    callback skip-clicked();
+
+    // Only show when visible
+    opacity: root.show ? 1.0 : 0.0;
+    visible: root.show;
+
+    // Dark overlay covering entire window
+    background: #000000aa;
+
+    // Block clicks from passing through
+    TouchArea {
+        width: 100%;
+        height: 100%;
+    }
+
+    // Centered card
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 400px;
+        height: 280px;
+        background: AppTheme.bg-secondary;
+        border-radius: AppTheme.border-radius * 2;
+        border-width: 1px;
+        border-color: AppTheme.border;
+
+        VerticalLayout {
+            padding: 24px;
+            spacing: 16px;
+            alignment: start;
+
+            // Title
+            Text {
+                text: "Vault Password";
+                color: AppTheme.fg-primary;
+                font-size: 18px;
+                font-weight: 600;
+                horizontal-alignment: center;
+            }
+
+            // Subtitle
+            Text {
+                text: "Enter your vault master password to unlock saved credentials.";
+                color: AppTheme.fg-secondary;
+                font-size: 13px;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+
+            // Password input
+            LineEdit {
+                input-type: InputType.password;
+                text <=> root.password;
+                placeholder-text: "Master password";
+                accepted => {
+                    root.unlock-clicked(root.password);
+                }
+            }
+
+            // Error text (only shown when non-empty)
+            if root.error-text != "" : Text {
+                text: root.error-text;
+                color: AppTheme.error;
+                font-size: 12px;
+                horizontal-alignment: center;
+            }
+
+            // Buttons row
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: center;
+
+                // Skip button
+                Rectangle {
+                    width: 100px;
+                    height: 36px;
+                    background: skip-touch.has-hover ? AppTheme.bg-hover : AppTheme.bg-tertiary;
+                    border-radius: AppTheme.border-radius;
+                    border-width: 1px;
+                    border-color: AppTheme.border;
+
+                    skip-touch := TouchArea {
+                        clicked => {
+                            root.skip-clicked();
+                        }
+                    }
+
+                    Text {
+                        text: "Skip";
+                        color: AppTheme.fg-secondary;
+                        font-size: 14px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // Unlock button
+                Rectangle {
+                    width: 100px;
+                    height: 36px;
+                    background: unlock-touch.has-hover ? AppTheme.accent-hover : AppTheme.accent;
+                    border-radius: AppTheme.border-radius;
+
+                    unlock-touch := TouchArea {
+                        clicked => {
+                            root.unlock-clicked(root.password);
+                        }
+                    }
+
+                    Text {
+                        text: "Unlock";
+                        color: #ffffff;
+                        font-size: 14px;
+                        font-weight: 600;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

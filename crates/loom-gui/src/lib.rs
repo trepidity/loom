@@ -7,8 +7,10 @@ use async_compat::Compat;
 use slint::{Model, ModelRc, SharedString, VecModel};
 use tracing::{error, info};
 
-use loom_core::config::AppConfig;
-use loom_core::connection::LdapConnection;
+use loom_core::config::{AppConfig, ConnectionProfile};
+use loom_core::connection::{ConnectionSettings, LdapConnection, TlsMode};
+use loom_core::credentials::{CredentialMethod, CredentialProvider};
+use loom_core::vault::Vault;
 
 /// Per-node metadata stored alongside the flat tree model.
 #[derive(Clone, Debug)]
@@ -36,6 +38,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
     // Shared state: config and active connection
     let config = Rc::new(RefCell::new(config));
     let conn_state: Rc<RefCell<Option<ConnectionState>>> = Rc::new(RefCell::new(None));
+    let vault_state: Rc<RefCell<Option<Vault>>> = Rc::new(RefCell::new(None));
+    let pending_profile_index: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(None));
 
     // Shared tree VecModel so we can mutate it from callbacks
     let tree_model: Rc<VecModel<TreeNode>> = Rc::new(VecModel::default());
@@ -57,6 +61,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let tree_model = tree_model.clone();
         let attr_model = attr_model.clone();
         let tabs_model = tabs_model.clone();
+        let vault_state_c = vault_state.clone();
+        let pending_profile_index_c = pending_profile_index.clone();
 
         main_window.on_connect_profile(move |profile_index| {
             let index = profile_index as usize;
@@ -79,8 +85,61 @@ pub fn run() -> Result<(), slint::PlatformError> {
             let profile_name = profile.name.clone();
             let settings = profile.to_connection_settings();
             let base_dn = profile.base_dn.clone().unwrap_or_default();
-            let _bind_dn = profile.bind_dn.clone();
-            let _credential_method = profile.credential_method.clone();
+            let bind_dn = profile.bind_dn.clone();
+            let credential_method = profile.credential_method.clone();
+            let password_command = profile.password_command.clone();
+
+            // Resolve password for authenticated connections
+            let password: Option<String> = if bind_dn.is_some() {
+                match credential_method {
+                    CredentialMethod::Command => {
+                        if let Some(ref cmd) = password_command {
+                            match CredentialProvider::from_command(cmd) {
+                                Ok(pw) => Some(pw),
+                                Err(e) => {
+                                    error!("Password command failed: {}", e);
+                                    // Fall back to prompt
+                                    None
+                                }
+                            }
+                        } else {
+                            None // No command configured, fall back to prompt
+                        }
+                    }
+                    CredentialMethod::Keychain => {
+                        match CredentialProvider::from_keychain(&profile_name) {
+                            Ok(pw) => Some(pw),
+                            Err(e) => {
+                                error!("Keychain lookup failed: {}", e);
+                                None // Fall back to prompt
+                            }
+                        }
+                    }
+                    CredentialMethod::Vault => {
+                        let vault = vault_state_c.borrow();
+                        match vault.as_ref() {
+                            Some(v) => v.get_password(&profile_name).map(|s| s.to_string()),
+                            None => None, // Vault not unlocked, fall back to prompt
+                        }
+                    }
+                    CredentialMethod::Prompt => None,
+                }
+            } else {
+                None // No bind DN means anonymous
+            };
+
+            // If bind_dn is set but we have no password, show the credential dialog
+            if bind_dn.is_some() && password.is_none() {
+                *pending_profile_index_c.borrow_mut() = Some(profile_index);
+                if let Some(win) = weak.upgrade() {
+                    win.set_credential_profile_name(SharedString::from(&profile_name));
+                    win.set_credential_bind_dn(SharedString::from(
+                        bind_dn.as_deref().unwrap_or(""),
+                    ));
+                    win.set_credential_dialog_visible(true);
+                }
+                return;
+            }
 
             // Update status
             if let Some(win) = weak.upgrade() {
@@ -94,142 +153,94 @@ pub fn run() -> Result<(), slint::PlatformError> {
             let attr_model = attr_model.clone();
             let tabs_model = tabs_model.clone();
 
-            slint::spawn_local(Compat::new(async move {
-                // Connect
-                let mut conn = match LdapConnection::connect(settings, None).await {
-                    Ok(c) => c,
-                    Err(e) => {
-                        error!("Connection failed: {}", e);
-                        if let Some(win) = weak.upgrade() {
-                            win.set_status_message(SharedString::from(format!(
-                                "Connection failed: {}",
-                                e
-                            )));
-                            win.set_status_is_error(true);
-                        }
-                        return;
-                    }
-                };
+            spawn_connect(
+                weak,
+                conn_state,
+                tree_model,
+                attr_model,
+                tabs_model,
+                settings,
+                host,
+                profile_name,
+                base_dn,
+                bind_dn,
+                password,
+                profile_index,
+            );
+        });
+    }
 
-                // Bind — for now always anonymous; Task 16 adds credential prompts
-                let bind_result = conn.anonymous_bind().await;
+    // --- Task 16: credential-connect callback ---
+    {
+        let weak = main_window.as_weak();
+        let config = config.clone();
+        let conn_state = conn_state.clone();
+        let tree_model = tree_model.clone();
+        let attr_model = attr_model.clone();
+        let tabs_model = tabs_model.clone();
+        let pending_profile_index_c = pending_profile_index.clone();
 
-                if let Err(e) = bind_result {
-                    error!("Bind failed: {}", e);
-                    if let Some(win) = weak.upgrade() {
-                        win.set_status_message(SharedString::from(format!("Bind failed: {}", e)));
-                        win.set_status_is_error(true);
-                    }
-                    return;
-                }
+        main_window.on_credential_connect(move |password| {
+            let profile_index = match *pending_profile_index_c.borrow() {
+                Some(idx) => idx,
+                None => return,
+            };
+            *pending_profile_index_c.borrow_mut() = None;
 
-                info!("Connected to {}", &host);
+            let index = profile_index as usize;
+            let cfg = config.borrow();
+            let profile = match cfg.connections.get(index) {
+                Some(p) => p.clone(),
+                None => return,
+            };
 
-                // --- Task 11: Create tab ---
-                if let Some(win) = weak.upgrade() {
-                    let tab = TabInfo {
-                        id: profile_index,
-                        title: SharedString::from(&profile_name),
-                    };
-                    tabs_model.push(tab);
-                    let tab_count = tabs_model.row_count() as i32;
-                    win.set_active_tab(tab_count - 1);
-                }
+            let host = profile.host.clone();
+            let profile_name = profile.name.clone();
+            let settings = profile.to_connection_settings();
+            let base_dn = profile.base_dn.clone().unwrap_or_default();
+            let bind_dn = profile.bind_dn.clone();
 
-                // --- Task 12: Populate tree with base DN + children ---
-                let effective_base = if base_dn.is_empty() {
-                    conn.base_dn.clone()
-                } else {
-                    base_dn.clone()
-                };
+            if let Some(win) = weak.upgrade() {
+                win.set_credential_dialog_visible(false);
+                win.set_status_message(SharedString::from(format!("Connecting to {}...", &host)));
+                win.set_status_is_error(false);
+            }
 
-                let children = match conn.search_children(&effective_base).await {
-                    Ok(entries) => entries,
-                    Err(e) => {
-                        error!("Failed to search base DN: {}", e);
-                        if let Some(win) = weak.upgrade() {
-                            win.set_status_message(SharedString::from(format!(
-                                "Connected to {} (search failed: {})",
-                                &host, e
-                            )));
-                            win.set_status_is_error(false);
-                        }
-                        // Still store connection even if initial search fails
-                        *conn_state.borrow_mut() = Some(ConnectionState {
-                            conn,
-                            tree_meta: Vec::new(),
-                        });
-                        return;
-                    }
-                };
+            let weak = weak.clone();
+            let conn_state = conn_state.clone();
+            let tree_model = tree_model.clone();
+            let attr_model = attr_model.clone();
+            let tabs_model = tabs_model.clone();
 
-                // Build flat tree model
-                let mut meta = Vec::new();
-                let mut nodes = Vec::new();
+            spawn_connect(
+                weak,
+                conn_state,
+                tree_model,
+                attr_model,
+                tabs_model,
+                settings,
+                host,
+                profile_name,
+                base_dn,
+                bind_dn,
+                Some(password.to_string()),
+                profile_index,
+            );
+        });
+    }
 
-                // Root node
-                meta.push(TreeNodeMeta {
-                    dn: effective_base.clone(),
-                    indent_level: 0,
-                    has_children: !children.is_empty(),
-                });
-                nodes.push(TreeNode {
-                    text: SharedString::from(&effective_base),
-                    indent_level: 0,
-                    expanded: true,
-                    has_children: !children.is_empty(),
-                    is_loading: false,
-                    is_selected: false,
-                });
+    // --- Task 16: credential-cancel callback ---
+    {
+        let weak = main_window.as_weak();
+        let pending_profile_index_c = pending_profile_index.clone();
 
-                // Children
-                for child in &children {
-                    meta.push(TreeNodeMeta {
-                        dn: child.dn.clone(),
-                        indent_level: 1,
-                        has_children: true, // assume children until proven otherwise
-                    });
-                    nodes.push(TreeNode {
-                        text: SharedString::from(child.rdn()),
-                        indent_level: 1,
-                        expanded: false,
-                        has_children: true,
-                        is_loading: false,
-                        is_selected: false,
-                    });
-                }
-
-                // Clear and repopulate tree model
-                while tree_model.row_count() > 0 {
-                    tree_model.remove(0);
-                }
-                for node in nodes {
-                    tree_model.push(node);
-                }
-
-                // Clear attributes
-                while attr_model.row_count() > 0 {
-                    attr_model.remove(0);
-                }
-
-                // Store connection state
-                *conn_state.borrow_mut() = Some(ConnectionState {
-                    conn,
-                    tree_meta: meta,
-                });
-
-                if let Some(win) = weak.upgrade() {
-                    win.set_status_message(SharedString::from(format!(
-                        "Connected to {} ({} entries)",
-                        &host,
-                        children.len()
-                    )));
-                    win.set_status_is_error(false);
-                    win.set_entry_dn(SharedString::default());
-                    win.set_tree_selected_index(-1);
-                }
-            }))
-            .unwrap();
+        main_window.on_credential_cancel(move || {
+            *pending_profile_index_c.borrow_mut() = None;
+            if let Some(win) = weak.upgrade() {
+                win.set_credential_dialog_visible(false);
+                win.set_status_message("Connection cancelled".into());
+                win.set_status_is_error(false);
+            }
         });
     }
 
@@ -489,6 +500,157 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
+    // --- Task 14: new-profile-requested callback ---
+    {
+        let weak = main_window.as_weak();
+        main_window.on_new_profile_requested(move || {
+            if let Some(win) = weak.upgrade() {
+                win.set_profile_dialog_title("New Profile".into());
+                win.set_profile_dialog_name(SharedString::default());
+                win.set_profile_dialog_host(SharedString::default());
+                win.set_profile_dialog_port("389".into());
+                win.set_profile_dialog_tls_mode("auto".into());
+                win.set_profile_dialog_bind_dn(SharedString::default());
+                win.set_profile_dialog_base_dn(SharedString::default());
+                win.set_profile_dialog_credential_method("prompt".into());
+                win.set_profile_dialog_folder(SharedString::default());
+                win.set_profile_dialog_visible(true);
+            }
+        });
+    }
+
+    // --- Task 14: save-profile callback ---
+    {
+        let weak = main_window.as_weak();
+        let config = config.clone();
+        main_window.on_save_profile(
+            move |name, host, port, tls_mode, bind_dn, base_dn, credential_method, folder| {
+                let tls = match tls_mode.as_str() {
+                    "ldaps" => TlsMode::Ldaps,
+                    "starttls" => TlsMode::StartTls,
+                    "none" => TlsMode::None,
+                    _ => TlsMode::Auto,
+                };
+
+                let cred = match credential_method.as_str() {
+                    "command" => CredentialMethod::Command,
+                    "keychain" => CredentialMethod::Keychain,
+                    "vault" => CredentialMethod::Vault,
+                    _ => CredentialMethod::Prompt,
+                };
+
+                let profile = ConnectionProfile {
+                    name: name.to_string(),
+                    host: host.to_string(),
+                    port: port as u16,
+                    tls_mode: tls,
+                    bind_dn: if bind_dn.is_empty() {
+                        None
+                    } else {
+                        Some(bind_dn.to_string())
+                    },
+                    base_dn: if base_dn.is_empty() {
+                        None
+                    } else {
+                        Some(base_dn.to_string())
+                    },
+                    credential_method: cred,
+                    password_command: None,
+                    page_size: 500,
+                    timeout_secs: 10,
+                    relax_rules: false,
+                    folder: if folder.is_empty() {
+                        None
+                    } else {
+                        Some(folder.to_string())
+                    },
+                    read_only: false,
+                    offline: false,
+                };
+
+                let profile_name = profile.name.clone();
+                config.borrow_mut().connections.push(profile);
+
+                if let Err(e) = config.borrow().save() {
+                    error!("Failed to save config: {}", e);
+                    if let Some(win) = weak.upgrade() {
+                        win.set_status_message(SharedString::from(format!(
+                            "Failed to save profile: {}",
+                            e
+                        )));
+                        win.set_status_is_error(true);
+                    }
+                    return;
+                }
+
+                info!("Saved new profile: {}", &profile_name);
+
+                if let Some(win) = weak.upgrade() {
+                    win.set_profile_dialog_visible(false);
+                    win.set_status_message(SharedString::from(format!(
+                        "Profile '{}' saved",
+                        &profile_name
+                    )));
+                    win.set_status_is_error(false);
+                }
+            },
+        );
+    }
+
+    // --- Task 15: Vault dialog on startup ---
+    {
+        let vault_path = Vault::default_path();
+        let cfg = config.borrow();
+        if cfg.general.vault_enabled && Vault::exists(&vault_path) {
+            main_window.set_vault_dialog_visible(true);
+            info!("Vault file found, prompting for password");
+        }
+    }
+
+    // --- Task 15: vault-unlock callback ---
+    {
+        let weak = main_window.as_weak();
+        let vault_state = vault_state.clone();
+
+        main_window.on_vault_unlock(move |password| {
+            let vault_path = Vault::default_path();
+            match Vault::open(&vault_path, password.as_str()) {
+                Ok(vault) => {
+                    info!("Vault unlocked successfully");
+                    *vault_state.borrow_mut() = Some(vault);
+                    if let Some(win) = weak.upgrade() {
+                        win.set_vault_dialog_visible(false);
+                        win.set_vault_error(SharedString::default());
+                        win.set_status_message("Vault unlocked".into());
+                        win.set_status_is_error(false);
+                    }
+                }
+                Err(e) => {
+                    error!("Vault unlock failed: {}", e);
+                    if let Some(win) = weak.upgrade() {
+                        win.set_vault_error(SharedString::from(format!(
+                            "Failed to unlock vault: {}",
+                            e
+                        )));
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Task 15: vault-skip callback ---
+    {
+        let weak = main_window.as_weak();
+
+        main_window.on_vault_skip(move || {
+            info!("Vault skipped by user");
+            if let Some(win) = weak.upgrade() {
+                win.set_vault_dialog_visible(false);
+                win.set_vault_error(SharedString::default());
+            }
+        });
+    }
+
     // --- Task 11: Auto-connect to first profile if available ---
     {
         let config = config.borrow();
@@ -498,6 +660,165 @@ pub fn run() -> Result<(), slint::PlatformError> {
     }
 
     main_window.run()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_connect(
+    weak: slint::Weak<MainWindow>,
+    conn_state: Rc<RefCell<Option<ConnectionState>>>,
+    tree_model: Rc<VecModel<TreeNode>>,
+    attr_model: Rc<VecModel<AttributeRow>>,
+    tabs_model: Rc<VecModel<TabInfo>>,
+    settings: ConnectionSettings,
+    host: String,
+    profile_name: String,
+    base_dn: String,
+    bind_dn: Option<String>,
+    password: Option<String>,
+    profile_index: i32,
+) {
+    slint::spawn_local(Compat::new(async move {
+        // Connect
+        let mut conn = match LdapConnection::connect(settings, None).await {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Connection failed: {}", e);
+                if let Some(win) = weak.upgrade() {
+                    win.set_status_message(SharedString::from(format!("Connection failed: {}", e)));
+                    win.set_status_is_error(true);
+                }
+                return;
+            }
+        };
+
+        // Bind
+        let bind_result = if let (Some(ref dn), Some(ref pw)) = (&bind_dn, &password) {
+            conn.simple_bind(dn, pw).await
+        } else {
+            conn.anonymous_bind().await
+        };
+
+        if let Err(e) = bind_result {
+            error!("Bind failed: {}", e);
+            if let Some(win) = weak.upgrade() {
+                win.set_status_message(SharedString::from(format!("Bind failed: {}", e)));
+                win.set_status_is_error(true);
+            }
+            return;
+        }
+
+        // Store credentials for reconnection
+        if let (Some(dn), Some(pw)) = (bind_dn, password) {
+            conn.store_credentials(dn, pw);
+        }
+
+        info!("Connected to {}", &host);
+
+        // --- Task 11: Create tab ---
+        if let Some(win) = weak.upgrade() {
+            let tab = TabInfo {
+                id: profile_index,
+                title: SharedString::from(&profile_name),
+            };
+            tabs_model.push(tab);
+            let tab_count = tabs_model.row_count() as i32;
+            win.set_active_tab(tab_count - 1);
+        }
+
+        // --- Task 12: Populate tree with base DN + children ---
+        let effective_base = if base_dn.is_empty() {
+            conn.base_dn.clone()
+        } else {
+            base_dn.clone()
+        };
+
+        let children = match conn.search_children(&effective_base).await {
+            Ok(entries) => entries,
+            Err(e) => {
+                error!("Failed to search base DN: {}", e);
+                if let Some(win) = weak.upgrade() {
+                    win.set_status_message(SharedString::from(format!(
+                        "Connected to {} (search failed: {})",
+                        &host, e
+                    )));
+                    win.set_status_is_error(false);
+                }
+                // Still store connection even if initial search fails
+                *conn_state.borrow_mut() = Some(ConnectionState {
+                    conn,
+                    tree_meta: Vec::new(),
+                });
+                return;
+            }
+        };
+
+        // Build flat tree model
+        let mut meta = Vec::new();
+        let mut nodes = Vec::new();
+
+        // Root node
+        meta.push(TreeNodeMeta {
+            dn: effective_base.clone(),
+            indent_level: 0,
+            has_children: !children.is_empty(),
+        });
+        nodes.push(TreeNode {
+            text: SharedString::from(&effective_base),
+            indent_level: 0,
+            expanded: true,
+            has_children: !children.is_empty(),
+            is_loading: false,
+            is_selected: false,
+        });
+
+        // Children
+        for child in &children {
+            meta.push(TreeNodeMeta {
+                dn: child.dn.clone(),
+                indent_level: 1,
+                has_children: true, // assume children until proven otherwise
+            });
+            nodes.push(TreeNode {
+                text: SharedString::from(child.rdn()),
+                indent_level: 1,
+                expanded: false,
+                has_children: true,
+                is_loading: false,
+                is_selected: false,
+            });
+        }
+
+        // Clear and repopulate tree model
+        while tree_model.row_count() > 0 {
+            tree_model.remove(0);
+        }
+        for node in nodes {
+            tree_model.push(node);
+        }
+
+        // Clear attributes
+        while attr_model.row_count() > 0 {
+            attr_model.remove(0);
+        }
+
+        // Store connection state
+        *conn_state.borrow_mut() = Some(ConnectionState {
+            conn,
+            tree_meta: meta,
+        });
+
+        if let Some(win) = weak.upgrade() {
+            win.set_status_message(SharedString::from(format!(
+                "Connected to {} ({} entries)",
+                &host,
+                children.len()
+            )));
+            win.set_status_is_error(false);
+            win.set_entry_dn(SharedString::default());
+            win.set_tree_selected_index(-1);
+        }
+    }))
+    .unwrap();
 }
 
 fn apply_theme(window: &MainWindow, theme_name: &str) {

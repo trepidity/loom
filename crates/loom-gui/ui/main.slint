@@ -3,6 +3,9 @@ import { StatusBar } from "status-bar.slint";
 import { TabBar, TabInfo } from "tab-bar.slint";
 import { TreeView, TreeNode } from "tree-view.slint";
 import { DetailPanel, AttributeRow } from "detail-panel.slint";
+import { ProfileDialog } from "profile-dialog.slint";
+import { VaultDialog } from "vault-dialog.slint";
+import { CredentialDialog } from "credential-dialog.slint";
 
 export { AppTheme }
 
@@ -31,9 +34,36 @@ export component MainWindow inherits Window {
     // Profiles
     callback connect-profile(int);
 
+    // Profile dialog
+    in-out property <bool> profile-dialog-visible: false;
+    in-out property <string> profile-dialog-title: "New Profile";
+    in-out property <string> profile-dialog-name: "";
+    in-out property <string> profile-dialog-host: "";
+    in-out property <string> profile-dialog-port: "389";
+    in-out property <string> profile-dialog-tls-mode: "auto";
+    in-out property <string> profile-dialog-bind-dn: "";
+    in-out property <string> profile-dialog-base-dn: "";
+    in-out property <string> profile-dialog-credential-method: "prompt";
+    in-out property <string> profile-dialog-folder: "";
+    callback new-profile-requested();
+    callback save-profile(string, string, int, string, string, string, string, string);
+
     // Detail
     in-out property <[AttributeRow]> attributes: [];
     in-out property <string> entry-dn: "";
+
+    // Vault dialog
+    in-out property <bool> vault-dialog-visible: false;
+    in-out property <string> vault-error: "";
+    callback vault-unlock(string);
+    callback vault-skip();
+
+    // Credential dialog
+    in-out property <bool> credential-dialog-visible: false;
+    in-out property <string> credential-profile-name: "";
+    in-out property <string> credential-bind-dn: "";
+    callback credential-connect(string);
+    callback credential-cancel();
 
     VerticalLayout {
         TabBar {
@@ -85,6 +115,73 @@ export component MainWindow inherits Window {
         StatusBar {
             message: root.status-message;
             is-error: root.status-is-error;
+        }
+    }
+
+    // Profile dialog overlay (drawn on top of everything)
+    ProfileDialog {
+        show <=> root.profile-dialog-visible;
+        dialog-title <=> root.profile-dialog-title;
+        profile-name <=> root.profile-dialog-name;
+        host <=> root.profile-dialog-host;
+        port <=> root.profile-dialog-port;
+        tls-mode <=> root.profile-dialog-tls-mode;
+        bind-dn <=> root.profile-dialog-bind-dn;
+        base-dn <=> root.profile-dialog-base-dn;
+        credential-method <=> root.profile-dialog-credential-method;
+        folder <=> root.profile-dialog-folder;
+        width: root.width;
+        height: root.height;
+
+        save-clicked => {
+            root.save-profile(
+                root.profile-dialog-name,
+                root.profile-dialog-host,
+                root.profile-dialog-port.to-float(),
+                root.profile-dialog-tls-mode,
+                root.profile-dialog-bind-dn,
+                root.profile-dialog-base-dn,
+                root.profile-dialog-credential-method,
+                root.profile-dialog-folder,
+            );
+        }
+
+        cancel-clicked => {
+            root.profile-dialog-visible = false;
+        }
+    }
+
+    // Vault dialog overlay (highest z-order, drawn on top of everything)
+    VaultDialog {
+        show <=> root.vault-dialog-visible;
+        error-text <=> root.vault-error;
+        width: root.width;
+        height: root.height;
+
+        unlock-clicked(password) => {
+            root.vault-unlock(password);
+        }
+
+        skip-clicked => {
+            root.vault-skip();
+        }
+    }
+
+    // Credential dialog overlay
+    CredentialDialog {
+        show <=> root.credential-dialog-visible;
+        profile-name <=> root.credential-profile-name;
+        bind-dn <=> root.credential-bind-dn;
+        width: root.width;
+        height: root.height;
+
+        connect-clicked(password) => {
+            root.credential-connect(password);
+        }
+
+        cancel-clicked => {
+            root.credential-dialog-visible = false;
+            root.credential-cancel();
         }
     }
 }
